@@ -1,6 +1,6 @@
 {
-  "name": "Treino de Remo",
-  "short_name": "Remo",
+  "name": "Voga - Remo Indoor",
+  "short_name": "Voga",
   "description": "Treinos de remo com contador regressivo, voga e sinal sonoro.",
   "lang": "pt-BR",
   "start_url": "./",
