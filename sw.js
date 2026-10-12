@@ -8,7 +8,6 @@ const CACHE_FALAS = "voga-falas-v1";
 const ESCOPO = self.registration.scope; // sempre termina com "/"
 const ASSETS = ["assets/index-4rBTrWe0.js", "assets/index-AmYUs3IH.css", "assets/react-C8w-UNLI.js"];
 const BASE = [ESCOPO, `${ESCOPO}manifest.webmanifest`, `${ESCOPO}icons/icon.svg`, ...ASSETS.map((a) => `${ESCOPO}${a}`)];
-const CAMINHO_API = new URL("api/", ESCOPO).pathname;
 // Falas do treino (audio/voga-12.mp3 ... voga-46.mp3, 5seg.mp3, vai.mp3): guardadas para funcionar offline.
 const FALAS = [
   ...Array.from({ length: 35 }, (_, i) => `${ESCOPO}audio/voga-${i + 12}.mp3`),
@@ -65,7 +64,7 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   const req = e.request;
   const url = new URL(req.url);
-  if (req.method !== "GET" || url.pathname.startsWith(CAMINHO_API)) return; // API sempre na rede
+  if (req.method !== "GET") return;
 
   // Treinos em arquivos (pasta treinos/): rede primeiro, para que um arquivo novo apareça ao atualizar a página;
   // a cópia guardada só entra se estiver offline.
