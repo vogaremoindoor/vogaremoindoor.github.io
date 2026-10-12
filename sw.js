@@ -1,12 +1,12 @@
 // Service worker: deixa o app abrir sem internet. Funciona na raiz do site ou em uma subpasta
-// (por exemplo https://usuario.github.io/treino-remo/), pois tudo é relativo ao escopo.
+// (por exemplo https://usuario.github.io/voga/), pois tudo é relativo ao escopo.
 // A versão e a lista de assets abaixo são preenchidas no build (vite.config.js). O cache do app muda a cada versão;
 // o das falas (audio/) é separado e permanece, para não baixar tudo de novo a cada atualização.
-const VERSAO = "8qe4cpzn";
-const CACHE = `treino-remo-app-${VERSAO}`;
-const CACHE_FALAS = "treino-remo-falas-v1";
+const VERSAO = "4rbtrwe0";
+const CACHE = `voga-app-${VERSAO}`;
+const CACHE_FALAS = "voga-falas-v1";
 const ESCOPO = self.registration.scope; // sempre termina com "/"
-const ASSETS = ["assets/index-8QE4CPZN.js", "assets/index-AmYUs3IH.css", "assets/react-C8w-UNLI.js"];
+const ASSETS = ["assets/index-4rBTrWe0.js", "assets/index-AmYUs3IH.css", "assets/react-C8w-UNLI.js"];
 const BASE = [ESCOPO, `${ESCOPO}manifest.webmanifest`, `${ESCOPO}icons/icon.svg`, ...ASSETS.map((a) => `${ESCOPO}${a}`)];
 const CAMINHO_API = new URL("api/", ESCOPO).pathname;
 // Falas do treino (audio/voga-12.mp3 ... voga-46.mp3, 5seg.mp3, vai.mp3): guardadas para funcionar offline.
@@ -49,9 +49,14 @@ self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches
       .keys()
-      // só apaga caches antigos DESTE app (no github.io outros projetos dividem o mesmo domínio)
+      // só apaga caches antigos DESTE app (no github.io outros projetos dividem o mesmo domínio);
+      // "treino-remo-" é o prefixo do nome antigo do app
       .then((nomes) =>
-        Promise.all(nomes.filter((n) => n.startsWith("treino-remo-") && n !== CACHE && n !== CACHE_FALAS).map((n) => caches.delete(n))),
+        Promise.all(
+          nomes
+            .filter((n) => (n.startsWith("voga-") || n.startsWith("treino-remo-")) && n !== CACHE && n !== CACHE_FALAS)
+            .map((n) => caches.delete(n)),
+        ),
       )
       .then(() => self.clients.claim()),
   );
