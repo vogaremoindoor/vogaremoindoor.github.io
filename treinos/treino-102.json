@@ -1,5 +1,6 @@
 {
   "nome": "Fundo 60 min · voga 18",
+  "tags": ["contínuo", "resistência", "longo"],
   "etapas": [
     { "tipo": "remada", "duracao_s": 3600, "voga": 18 }
   ]

@@ -1,5 +1,6 @@
 {
   "nome": "Pirâmide 1-2-3-4-3-2-1",
+  "tags": ["intervalado", "pirâmide"],
   "etapas": [
     { "tipo": "remada", "duracao_s": 300, "voga": 18 },
     { "tipo": "remada", "duracao_s": 180, "voga": 20 },

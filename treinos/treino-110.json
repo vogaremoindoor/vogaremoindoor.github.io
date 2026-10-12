@@ -1,5 +1,6 @@
 {
   "nome": "Escada de voga 20 → 30",
+  "tags": ["progressão", "contínuo"],
   "etapas": [
     { "tipo": "remada", "duracao_s": 180, "voga": 20 },
     { "tipo": "remada", "duracao_s": 180, "voga": 22 },
