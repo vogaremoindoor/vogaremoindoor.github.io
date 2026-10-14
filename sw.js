@@ -2,19 +2,21 @@
 // (por exemplo https://usuario.github.io/voga/), pois tudo é relativo ao escopo.
 // A versão e a lista de assets abaixo são preenchidas no build (vite.config.js). O cache do app muda a cada versão;
 // o das falas (audio/) é separado e permanece, para não baixar tudo de novo a cada atualização.
-const VERSAO = "o73be3ou";
+const VERSAO = "uxvrozsx";
 const CACHE = `voga-app-${VERSAO}`;
-const CACHE_FALAS = "voga-falas-v1";
+const CACHE_FALAS = "voga-falas-v2";
 const ESCOPO = self.registration.scope; // sempre termina com "/"
-const ASSETS = ["assets/index-o73Be3oU.js", "assets/index-aRwWHIBQ.css", "assets/react-C8w-UNLI.js"];
+const ASSETS = ["assets/index-UXvRozsx.js", "assets/index-M9cPwSu7.css", "assets/react-C8w-UNLI.js"];
 const BASE = [ESCOPO, `${ESCOPO}manifest.webmanifest`, `${ESCOPO}icons/icon.svg`, ...ASSETS.map((a) => `${ESCOPO}${a}`)];
-// Falas do treino (audio/voga-12.mp3 ... voga-46.mp3, 5seg.mp3, vai.mp3, respira.mp3, prepara-vai.mp3): guardadas para funcionar offline.
+// Falas do treino da voz padrão (audio/Faber/voga-12.mp3 ... voga-46.mp3, 5seg.mp3, vai.mp3, respira.mp3,
+// prepara-vai.mp3): guardadas para funcionar offline. Cada voz fica numa pasta própria dentro de audio/.
+const PASTA_VOZ = `${ESCOPO}audio/Faber/`;
 const FALAS = [
-  ...Array.from({ length: 35 }, (_, i) => `${ESCOPO}audio/voga-${i + 12}.mp3`),
-  `${ESCOPO}audio/5seg.mp3`,
-  `${ESCOPO}audio/vai.mp3`,
-  `${ESCOPO}audio/respira.mp3`,
-  `${ESCOPO}audio/prepara-vai.mp3`,
+  ...Array.from({ length: 35 }, (_, i) => `${PASTA_VOZ}voga-${i + 12}.mp3`),
+  `${PASTA_VOZ}5seg.mp3`,
+  `${PASTA_VOZ}vai.mp3`,
+  `${PASTA_VOZ}respira.mp3`,
+  `${PASTA_VOZ}prepara-vai.mp3`,
 ];
 
 // Guarda treinos/index.json e os arquivos de treino que ele lista (de melhor esforço), para a lista abrir offline
