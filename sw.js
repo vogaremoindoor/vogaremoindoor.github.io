@@ -2,12 +2,13 @@
 // (por exemplo https://usuario.github.io/voga/), pois tudo é relativo ao escopo.
 // A versão e a lista de assets abaixo são preenchidas no build (vite.config.js). O cache do app muda a cada versão;
 // o das falas (audio/) é separado e permanece, para não baixar tudo de novo a cada atualização.
-const VERSAO = "jvcvekwx";
+const VERSAO = "mv9jslpe";
 const CACHE = `voga-app-${VERSAO}`;
 const CACHE_FALAS = "voga-falas-v4";
 const ESCOPO = self.registration.scope; // sempre termina com "/"
-const ASSETS = ["assets/index-JvcVeKWx.js", "assets/index-UF1GeJYo.css", "assets/react-C8w-UNLI.js"];
+const ASSETS = ["assets/index-BDNR1ojP.js", "assets/index-DVI2-64s.css", "assets/react-C8w-UNLI.js"];
 const BASE = [ESCOPO, `${ESCOPO}manifest.webmanifest`, `${ESCOPO}icons/icon.svg`, ...ASSETS.map((a) => `${ESCOPO}${a}`)];
+const CAMINHO_API = new URL("api/", ESCOPO).pathname;
 // Falas do treino da voz padrão (audio/Faber/voga-12.mp3 ... voga-46.mp3, 5seg.mp3, vai.mp3, respira.mp3,
 // prepara-vai.mp3): guardadas para funcionar offline. Cada voz fica numa pasta própria dentro de audio/;
 // as falas das outras vozes (Nassif, Aranha) são guardadas quando usadas pela primeira vez com internet.
@@ -56,11 +57,7 @@ self.addEventListener("activate", (e) => {
       // só apaga caches antigos DESTE app (no github.io outros projetos dividem o mesmo domínio);
       // "treino-remo-" é o prefixo do nome antigo do app
       .then((nomes) =>
-        Promise.all(
-          nomes
-            .filter((n) => (n.startsWith("voga-") || n.startsWith("treino-remo-")) && n !== CACHE && n !== CACHE_FALAS)
-            .map((n) => caches.delete(n)),
-        ),
+        Promise.all(nomes.filter((n) => (n.startsWith("voga-") || n.startsWith("treino-remo-")) && n !== CACHE && n !== CACHE_FALAS).map((n) => caches.delete(n))),
       )
       .then(() => self.clients.claim()),
   );
@@ -69,7 +66,7 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   const req = e.request;
   const url = new URL(req.url);
-  if (req.method !== "GET") return;
+  if (req.method !== "GET" || url.pathname.startsWith(CAMINHO_API)) return; // API sempre na rede
 
   // Treinos em arquivos (pasta treinos/): rede primeiro, para que um arquivo novo apareça ao atualizar a página;
   // a cópia guardada só entra se estiver offline.
