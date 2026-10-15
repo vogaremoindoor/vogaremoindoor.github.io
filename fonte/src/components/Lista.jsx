@@ -120,13 +120,8 @@ export default function Lista() {
       ];
       const r = await salvarArquivo(nomeArquivoZip(new Date()), criarZip(conteudos));
       if (r.situacao === "cancelado") return;
-      const n = arquivos.length;
-      const sufixo = n === 1 ? "" : "s";
-      const onde = r.situacao === "salvo" ? `salvo${sufixo} em ${r.nome}` : `baixado${sufixo} (${r.nome}, na pasta de downloads)`;
-      const atualiza = arquivos.filter((a) => a.situacao === "atualiza").map((a) => a.nome);
+      // sem mensagem de confirmação quando dá certo: só os avisos (conflitos e treinos que ficaram de fora)
       const partes = [
-        `${n} ${n === 1 ? "treino" : "treinos"} ${onde}. Descompacte e envie os arquivos da pasta treinos, inclusive o index.json, para a pasta treinos do site (o LEIAME.txt do zip explica).`,
-        atualiza.length ? `Reescrevem arquivos que já estão no site: ${atualiza.join(", ")}.` : "",
         ...conflitos.map((c) => `Atenção: o ${c.arquivo} do site foi alterado por fora, então “${c.nome}” saiu como ${c.novoArquivo}, sem sobrescrever o do site.`),
         ignorados.length ? `Ficaram de fora por erro: ${ignorados.map((i) => `"${i.nome}" (${i.motivo})`).join("; ")}.` : "",
       ];
