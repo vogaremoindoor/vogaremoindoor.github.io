@@ -504,6 +504,7 @@ input[type="number"]::-webkit-inner-spin-button { display: none; }
 .info-topo { display: flex; align-items: center; gap: 16px; }
 .info-logo { width: 56px; height: 56px; flex: none; }
 .info-texto { display: flex; flex-direction: column; gap: 12px; }
+.info-versao { margin: 0; font-size: 13px; color: var(--suave); }
 .modal-caixa .info-texto p { font-size: 16px; font-weight: 400; line-height: 1.45; color: var(--texto); }
 .info-texto h2 { margin: 6px 0 0; font-size: 18px; font-weight: 700; }
 .info-texto ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 16px; line-height: 1.45; }
