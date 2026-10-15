@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CONTAGEM_MAX, CONTAGEM_MIN, lerConfig, salvarConfig } from "../config.js";
+import { CONTAGEM_MAX, CONTAGEM_MIN, lerConfig, PALETAS, salvarConfig } from "../config.js";
 import { base } from "./Icones.jsx";
 import { CampoNumero } from "./Passos.jsx";
 
@@ -102,12 +102,28 @@ export default function VogaConfig() {
             </section>
             <section className="config-secao">
               <h2>Aparência</h2>
-              <div className="config-linha config-futuro">
-                <div className="config-texto">
-                  <span>Paleta de cores</span>
-                  <small>Verde (padrão)</small>
-                </div>
-                <span className="selo-breve">em breve</span>
+              <div className="config-texto">
+                <span id="config-paleta">Paleta de cores</span>
+                <small>Vale para o tema claro e para o escuro. A padrão é a Verde.</small>
+              </div>
+              <div className="paletas" role="radiogroup" aria-labelledby="config-paleta">
+                {PALETAS.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={config.paleta === p.id}
+                    className={`paleta${config.paleta === p.id ? " escolhida" : ""}`}
+                    data-paleta={p.id}
+                    onClick={() => mudar({ paleta: p.id })}
+                  >
+                    <span className="paleta-amostra" aria-hidden="true">
+                      <i className="paleta-acento" />
+                      <i className="paleta-pausa" />
+                    </span>
+                    <span className="paleta-nome">{p.nome}</span>
+                  </button>
+                ))}
               </div>
             </section>
             <section className="config-secao">

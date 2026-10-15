@@ -28,6 +28,11 @@
           localStorage.removeItem(antiga);
         }
       } catch {}
+      // Aplica a paleta escolhida antes do app carregar, para a tela não piscar com as cores padrão.
+      try {
+        const p = JSON.parse(localStorage.getItem("voga:config") || "{}").paleta;
+        if (["oceano", "vermelho", "violeta", "grafite"].includes(p)) document.documentElement.dataset.paleta = p;
+      } catch {}
     </script>
   </head>
   <body>

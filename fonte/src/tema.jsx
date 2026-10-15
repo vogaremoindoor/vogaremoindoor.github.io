@@ -13,10 +13,26 @@ const lerSalvo = () => {
   }
 };
 
+// cor da barra do navegador: o fundo da paleta escolhida (ver config.js) no tema atual
+function fundoPaleta(tema, paleta) {
+  const cores =
+    {
+      verde: ["#0e1a14", "#f5f7f4"],
+      oceano: ["#0b1622", "#f3f6f9"],
+      vermelho: ["#140b0c", "#faf7f7"],
+      violeta: ["#14111f", "#f6f5fa"],
+      grafite: ["#121314", "#f4f4f5"],
+    }[paleta] || [COR_DA_BARRA.escuro, COR_DA_BARRA.claro];
+  return cores[tema === "claro" ? 1 : 0];
+}
+
 function aplicar(tema) {
   document.documentElement.dataset.tema = tema;
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", COR_DA_BARRA[tema]);
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", fundoPaleta(tema, document.documentElement.dataset.paleta));
 }
+
+/** Reaplica o tema atual (por exemplo depois de trocar a paleta, para atualizar a cor da barra). */
+export const reaplicarTema = () => aplicar(atual);
 
 let atual = lerSalvo();
 const ouvintes = new Set();
