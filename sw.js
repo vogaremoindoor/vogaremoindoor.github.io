@@ -2,7 +2,7 @@
 // (por exemplo https://usuario.github.io/voga/), pois tudo é relativo ao escopo.
 // A versão e a lista de assets abaixo são preenchidas no build (vite.config.js). O cache do app muda a cada versão;
 // o das falas (audio/) é separado e permanece, para não baixar tudo de novo a cada atualização.
-const VERSAO = "mv9jslpe";
+const VERSAO = "mv9mep5l";
 const CACHE = `voga-app-${VERSAO}`;
 const CACHE_FALAS = "voga-falas-v4";
 const ESCOPO = self.registration.scope; // sempre termina com "/"
