@@ -1,5 +1,6 @@
 {
   "nome": "Progressão de voga 16 → 36",
+  "tags": ["progressão", "intervalado"],
   "etapas": [
     { "tipo": "remada", "duracao_s": 240, "voga": 16 },
     { "tipo": "descanso", "duracao_s": 60 },
