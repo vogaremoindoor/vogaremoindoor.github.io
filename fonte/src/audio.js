@@ -6,6 +6,8 @@
 // (um atraso constante em todos os bipes). Aqui o áudio só é agendado em janelas curtas e é
 // reconferido várias vezes por segundo contra o relógio do treino, que é a referência.
 
+import { aoSalvarConfig, vozAtual } from "./config.js";
+
 let ctx = null;
 
 /** Relógio do treino: monotônico (não pula se a hora do computador for ajustada). */
@@ -121,9 +123,10 @@ const buffers = new Map(); // chave -> AudioBuffer ("voga:20", "5seg", "vai", "r
 const GANHO_VOZ = 1;
 const FOLGA_FALA_MS = 250; // pausa entre o fim de "Voga N" e o "5 segundos"
 const INICIO_FALA_MS = 150; // "Voga N" de etapa curta: logo depois que a etapa começa
-// "Prepara… Vai!": começa 1 s antes da remada (no lugar do último bipe curto), com o "Vai!" caindo na largada
+// "Prepara… Vai!": começa antes da remada (no lugar do último bipe curto), com o "Vai!" caindo na largada;
+// quanto antes depende da gravação de cada voz (ver VOZES em config.js; 1 s se não disser)
 const PREPARA_VAI = "prepara-vai";
-const PREPARA_VAI_ANTES_MS = 1000;
+const preparaVaiAntesMs = () => vozAtual().antes || 1000;
 
 export const chaveVoga = (n) => `voga:${n}`;
 export const temVoz = (chave) => buffers.has(chave);
@@ -131,8 +134,16 @@ const duracaoVozMs = (chave) => (buffers.get(chave)?.duration ?? 0) * 1000;
 /** Registra uma fala já decodificada (usado nos testes). */
 export const registrarVoz = (chave, buffer) => buffers.set(chave, buffer);
 
-// As falas são arquivos MP3 em audio/ (public/audio/): baixados uma vez e guardados em cache pelo navegador.
+// As falas são arquivos MP3 em audio/<voz>/ (public/audio/): baixados uma vez e guardados em cache pelo navegador.
 const bytesVozes = new Map(); // chave -> Promise<ArrayBuffer | null> (baixados uma vez só)
+
+// trocou a voz nas configurações: esquece as falas da voz anterior
+aoSalvarConfig((config, anterior) => {
+  if (anterior.voz !== config.voz) {
+    buffers.clear();
+    bytesVozes.clear();
+  }
+});
 
 const chavesDoTreino = (passos) => {
   const chaves = new Set(["5seg", "vai"]);
@@ -141,8 +152,8 @@ const chavesDoTreino = (passos) => {
   if (passos.some((p) => p.tipo === "remada")) chaves.add(PREPARA_VAI);
   return [...chaves];
 };
-// "voga:24" -> audio/voga-24.mp3 (relativo à página: funciona na raiz e em subpasta, como no github.io/repo/)
-const urlDaVoz = (chave) => new URL(`audio/${chave.replace(":", "-")}.mp3`, document.baseURI).href;
+// "voga:24" -> audio/Faber/voga-24.mp3 (relativo à página: funciona na raiz e em subpasta, como no github.io/repo/)
+const urlDaVoz = (chave) => new URL(`audio/${vozAtual().pasta}/${chave.replace(":", "-")}.mp3`, document.baseURI).href;
 
 function obterBytes(chave) {
   if (!bytesVozes.has(chave)) {
@@ -298,11 +309,11 @@ export function sinaisContagem(t0, segundos, primeiroPasso) {
   sinais.push(bipeLongo(t0 + segundos * 1000, tipo, comVai));
   if (tipo === "remada") {
     const chave = chaveVoga(primeiroPasso.voga);
-    const folga = preparaVai ? PREPARA_VAI_ANTES_MS : 0;
+    const folga = preparaVai ? preparaVaiAntesMs() : 0;
     if (typeof primeiroPasso !== "string" && temVoz(chave) && duracaoVozMs(chave) < segundos * 1000 - 300 - folga) {
       sinais.push(fala(t0, chave));
     }
-    if (preparaVai) sinais.push(fala(t0 + segundos * 1000 - PREPARA_VAI_ANTES_MS, PREPARA_VAI));
+    if (preparaVai) sinais.push(fala(t0 + segundos * 1000 - preparaVaiAntesMs(), PREPARA_VAI));
     else if (comVai) sinais.push(fala(t0 + segundos * 1000, "vai"));
   } else if (comVai) sinais.push(fala(t0 + segundos * 1000, "respira"));
   return sinais;
@@ -350,18 +361,20 @@ export function sinaisTreino(passos, indice, fimDoPasso, totalAtualMs = passos[i
     if (total >= 5000) {
       for (const s of [3, 2, 1]) {
         // antes de uma remada, o último bipe curto dá lugar ao "Prepara… Vai!"
-        if (!(proximo && proximo.tipo === "remada" && temVoz(PREPARA_VAI) && total >= 1500 && s === 1)) sinais.push(bipeCurto(fim - s * 1000));
+        if (!(proximo && proximo.tipo === "remada" && temVoz(PREPARA_VAI) && total >= preparaVaiAntesMs() + 500 && s === 1)) {
+          sinais.push(bipeCurto(fim - s * 1000));
+        }
       }
     }
     if (proximo) {
-      const preparaVai = proximo.tipo === "remada" && temVoz(PREPARA_VAI) && total >= 1500;
+      const preparaVai = proximo.tipo === "remada" && temVoz(PREPARA_VAI) && total >= preparaVaiAntesMs() + 500;
       const comVoz = proximo.tipo === "remada" ? preparaVai || temVoz("vai") : temFalaDoInicio(proximo.tipo);
       const respira = passos[i].tipo === "descanso" && temVoz("respira") ? duracaoVozMs("respira") + INICIO_FALA_MS : 0;
       sinais.push(bipeLongo(fim, proximo.tipo, comVoz));
       if (proximo.tipo === "remada") {
-        sinais.push(...falasAntesDaRemada(proximo, fim - total + respira, fim, total - respira, preparaVai ? PREPARA_VAI_ANTES_MS : 0));
+        sinais.push(...falasAntesDaRemada(proximo, fim - total + respira, fim, total - respira, preparaVai ? preparaVaiAntesMs() : 0));
       }
-      if (preparaVai) sinais.push(fala(fim - PREPARA_VAI_ANTES_MS, PREPARA_VAI));
+      if (preparaVai) sinais.push(fala(fim - preparaVaiAntesMs(), PREPARA_VAI));
       else if (comVoz) sinais.push(fala(fim, falaDoInicio(proximo.tipo)));
     } else {
       sinais.push({

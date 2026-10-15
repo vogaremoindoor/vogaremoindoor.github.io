@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { CONTAGEM_MAX, CONTAGEM_MIN, lerConfig, PALETAS, salvarConfig } from "../config.js";
-import { base } from "./Icones.jsx";
+import { CONTAGEM_MAX, CONTAGEM_MIN, lerConfig, PALETAS, salvarConfig, VOZES } from "../config.js";
+import { base, Marcado, Play } from "./Icones.jsx";
 import { CampoNumero } from "./Passos.jsx";
 
 const IconeConfig = (p) => (
@@ -128,12 +128,38 @@ export default function VogaConfig() {
             </section>
             <section className="config-secao">
               <h2>Falas</h2>
-              <div className="config-linha config-futuro">
-                <div className="config-texto">
-                  <span>Conjunto de falas</span>
-                  <small>Padrão</small>
-                </div>
-                <span className="selo-breve">em breve</span>
+              <div className="config-texto">
+                <span id="config-voz">Voz das falas</span>
+                <small>Voz que anuncia a voga, a contagem e o descanso durante o treino.</small>
+              </div>
+              <div className="vozes" role="radiogroup" aria-labelledby="config-voz">
+                {VOZES.map((v) => (
+                  <div key={v.id} className={`voz-opcao${config.voz === v.id ? " escolhida" : ""}`}>
+                    <button type="button" role="radio" aria-checked={config.voz === v.id} className="voz-escolher" onClick={() => mudar({ voz: v.id })}>
+                      <Marcado className={config.voz === v.id ? "" : "invisivel"} />
+                      <span className="voz-texto">
+                        <b>{v.nome}</b>
+                        <small>{v.descricao}</small>
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-icone voz-ouvir"
+                      aria-label={`Ouvir a voz ${v.nome}`}
+                      title="Ouvir"
+                      onClick={() => {
+                        // amostra: "Voga 20" desta voz
+                        try {
+                          new Audio(new URL(`audio/${v.pasta}/voga-20.mp3`, document.baseURI).href).play().catch(() => {});
+                        } catch {
+                          /* sem áudio: nada a fazer */
+                        }
+                      }}
+                    >
+                      <Play />
+                    </button>
+                  </div>
+                ))}
               </div>
             </section>
             <div className="modal-botoes">

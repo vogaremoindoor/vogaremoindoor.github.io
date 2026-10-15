@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { Lua, Sol } from "./components/Icones.jsx";
+import { aoSalvarConfig, lerConfig } from "./config.js";
 
 // Tema claro/escuro. A escolha fica salva no navegador; o padrão é o escuro.
 const CHAVE = "voga:tema";
@@ -31,12 +32,19 @@ function aplicar(tema) {
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", fundoPaleta(tema, document.documentElement.dataset.paleta));
 }
 
-/** Reaplica o tema atual (por exemplo depois de trocar a paleta, para atualizar a cor da barra). */
-export const reaplicarTema = () => aplicar(atual);
+
 
 let atual = lerSalvo();
 const ouvintes = new Set();
 if (typeof document !== "undefined") aplicar(atual);
+
+// Paleta de cores (configurações): fica em data-paleta e muda também a cor da barra do navegador.
+function aplicarPaleta(paleta) {
+  document.documentElement.dataset.paleta = paleta;
+  aplicar(atual);
+}
+if (typeof document !== "undefined") aplicarPaleta(lerConfig().paleta);
+aoSalvarConfig((config) => aplicarPaleta(config.paleta));
 
 export function alternarTema() {
   atual = atual === "claro" ? "escuro" : "claro";
