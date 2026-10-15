@@ -4,6 +4,7 @@ import { compararTreinos, duracaoPorTipo, nomeArquivoZip, normalizarTags, resumo
 import * as api from "../api.js";
 import { salvarArquivo } from "../arquivo.js";
 import { lerArquivoTreinos } from "../carregar.js";
+import { CHAVE_LISTA, lerPreferencias } from "../preferenciasLista.js";
 import { textoLeiame } from "../publicar.js";
 import { Link } from "../router.jsx";
 import { criarZip } from "../zip.js";
@@ -19,20 +20,6 @@ import { Baixar, Copiar, Filtro, Lapis, Lixeira, Mais, Ordem, Play, Subir } from
 // "48:00 (35:00/13:00)" = total (tempo remando / tempo descansando)
 const resumo = (treino) => resumoDuracao(treino.etapas);
 
-// Filtro e ordem da lista, lembrados neste navegador.
-const CHAVE_LISTA = "voga:lista";
-const lerPreferencias = () => {
-  try {
-    const p = JSON.parse(localStorage.getItem(CHAVE_LISTA) || "{}");
-    return {
-      filtro: ["todos", "locais", "site"].includes(p.filtro) ? p.filtro : "todos",
-      tag: typeof p.tag === "string" ? p.tag : "",
-      ordem: ["nome", "nome-desc", "duracao", "duracao-desc"].includes(p.ordem) ? p.ordem : "nome",
-    };
-  } catch {
-    return { filtro: "todos", tag: "", ordem: "nome" };
-  }
-};
 const duracaoTreino = (t) => {
   try {
     return t.invalido ? Infinity : duracaoPorTipo(t.etapas).total;
@@ -40,6 +27,7 @@ const duracaoTreino = (t) => {
     return Infinity;
   }
 };
+const alteradoEm = (t) => (Number.isFinite(t.alterado) ? t.alterado : 0);
 const ORDENACOES = {
   nome: (a, b) => compararTreinos(a, b),
   "nome-desc": (a, b) => compararTreinos(b, a),
@@ -50,6 +38,8 @@ const ORDENACOES = {
     const db = duracaoTreino(b);
     return (da === Infinity) - (db === Infinity) || db - da || compararTreinos(a, b);
   },
+  // os do site (sem data de alteração) ficam depois dos locais, por nome
+  recentes: (a, b) => alteradoEm(b) - alteradoEm(a) || compararTreinos(a, b),
 };
 
 export default function Lista() {
@@ -92,6 +82,7 @@ export default function Lista() {
     setOcupado(true);
     try {
       await api.criar({ nome: `${t.nome} (cópia)`.slice(0, 80), tags: normalizarTags(t.tags), etapas: t.etapas });
+      setPreferencias(lerPreferencias()); // criar muda a ordem para "alterados recentemente" (ver marcarRecentes)
       await carregar();
     } catch (e) {
       setErro(e.message);
@@ -274,6 +265,7 @@ export default function Lista() {
               { valor: "nome-desc", rotulo: "Nome (Z → A)" },
               { valor: "duracao", rotulo: "Duração (menor → maior)" },
               { valor: "duracao-desc", rotulo: "Duração (maior → menor)" },
+              { valor: "recentes", rotulo: "Alterados recentemente" },
             ]}
             onEscolher={(ordem) => mudarPreferencia({ ordem })}
           />

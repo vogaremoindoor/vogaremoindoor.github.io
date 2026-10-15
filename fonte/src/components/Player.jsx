@@ -276,6 +276,10 @@ export default function Player({ treino, onSair }) {
           <button type="button" className="btn btn-verde btn-grande" onClick={onSair}>
             Voltar aos treinos
           </button>
+          {/* volta para a tela de início do mesmo treino */}
+          <button type="button" className="btn btn-contorno" onClick={cancelarContagem}>
+            Repetir treino
+          </button>
         </div>
       </div>
     );

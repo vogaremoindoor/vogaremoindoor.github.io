@@ -13,6 +13,7 @@ import {
   numeroDoArquivo,
   validarTreino,
 } from "../shared/treino.js";
+import { marcarRecentes } from "./preferenciasLista.js";
 import { crc32 } from "./zip.js";
 
 const CHAVE = "voga:treinos";
@@ -155,8 +156,9 @@ export async function criar(treino) {
   const erro = validarTreino(treino);
   if (erro) throw new ErroApi(erro, 400);
   const dados = ler();
-  const novo = { id: dados.proximoId, nome: treino.nome.trim(), tags: normalizarTags(treino.tags), etapas: copia(treino.etapas) };
+  const novo = { id: dados.proximoId, nome: treino.nome.trim(), tags: normalizarTags(treino.tags), etapas: copia(treino.etapas), alterado: Date.now() };
   gravar({ ...dados, proximoId: dados.proximoId + 1, treinos: [...dados.treinos, novo] });
+  marcarRecentes(novo);
   return copia(novo);
 }
 
@@ -167,8 +169,9 @@ export async function atualizar(id, treino) {
   const dados = ler();
   if (!dados.treinos.some((x) => x.id === Number(id))) throw new ErroApi("Treino não encontrado.", 404);
   const antigo = dados.treinos.find((x) => x.id === Number(id));
-  const novo = { id: Number(id), nome: treino.nome.trim(), tags: normalizarTags(treino.tags), etapas: copia(treino.etapas), ...(antigo.arquivo && { arquivo: antigo.arquivo, exportado: antigo.exportado }) };
+  const novo = { id: Number(id), nome: treino.nome.trim(), tags: normalizarTags(treino.tags), etapas: copia(treino.etapas), alterado: Date.now(), ...(antigo.arquivo && { arquivo: antigo.arquivo, exportado: antigo.exportado }) };
   gravar({ ...dados, treinos: dados.treinos.map((x) => (x.id === novo.id ? novo : x)) });
+  marcarRecentes(novo);
   return copia(novo);
 }
 
