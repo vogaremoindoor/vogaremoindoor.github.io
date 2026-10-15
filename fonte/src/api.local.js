@@ -7,6 +7,7 @@ import {
   compararTreinos,
   conteudoArquivoTreino,
   interpretarArquivoTreino,
+  normalizarEtapas,
   nomeArquivoDeNumero,
   numeroDoArquivo,
   validarTreino,
@@ -249,4 +250,50 @@ export async function prepararPublicacao() {
     .filter((n) => !noSite.has(chaveArquivo(n)))
     .sort((a, b) => numeroDoArquivo(a) - numeroDoArquivo(b));
   return { arquivos, indice: [...existentes, ...novosNomes], ignorados, jaPublicados, conflitos };
+}
+
+/** Quantos treinos locais existem (para perguntar se a carga adiciona ou substitui). */
+export const quantidadeLocais = () => ler().treinos.length;
+
+/**
+ * "Carregar treinos": grava como locais os treinos lidos de um .zip ou .json (ver src/carregar.js).
+ * Ignora os que já existem iguais. Com `substituir`, apaga antes os treinos locais atuais.
+ * O treino que veio de um arquivo treino-NNN.json guarda esse número (se ninguém aqui já o usa), como se
+ * tivesse sido baixado deste navegador: assim o próximo "Baixar treinos locais" reescreve o mesmo arquivo.
+ */
+export function importarTreinos(lista, substituir) {
+  const dados = ler();
+  const mantidos = substituir ? [] : dados.treinos;
+  const conteudos = new Set(
+    mantidos.map((t) => {
+      try {
+        return canonico(t);
+      } catch {
+        return "";
+      }
+    }),
+  );
+  const usados = new Set(mantidos.map((t) => t.arquivo).filter(Boolean));
+  const novos = [];
+  let proximoId = dados.proximoId;
+  let repetidos = 0;
+  for (const t of lista) {
+    const conteudo = canonico(t);
+    if (conteudos.has(conteudo)) {
+      repetidos++;
+      continue;
+    }
+    conteudos.add(conteudo);
+    const guardaArquivo = numeroDoArquivo(t.arquivo) !== null && !usados.has(t.arquivo);
+    if (guardaArquivo) usados.add(t.arquivo);
+    novos.push({ id: proximoId++, nome: t.nome, etapas: normalizarEtapas(t.etapas), ...(guardaArquivo && { arquivo: t.arquivo, exportado: hash(conteudo) }) });
+  }
+  gravar({ ...dados, proximoId, treinos: [...mantidos, ...novos] });
+  return { novos, repetidos };
+}
+
+/** Quantos destes treinos são iguais a um arquivo publicado no site (e por isso aparecem como treino do site). */
+export async function quantosJaPublicados(treinos) {
+  const arquivos = await listarArquivos();
+  return treinos.filter((t) => jaPublicado(t, arquivos)).length;
 }

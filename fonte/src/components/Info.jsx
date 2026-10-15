@@ -61,7 +61,13 @@ export default function VogaInfo() {
                   <b>Treinos locais</b> (etiqueta “local”, fundo destacado): são os que você cria ou duplica. Ficam salvos só neste navegador; se você limpar os dados do navegador ou trocar de aparelho, eles não vão junto.
                 </li>
                 <li>
-                  <b>Baixar treinos locais</b>: gera um .zip com os seus treinos locais, para enviar à pasta treinos do site e publicá-los para todos (o LEIAME.txt do zip explica como).
+                  <b>Baixar treinos locais</b>: gera um .zip com os seus treinos locais, para enviar à pasta treinos do site e publicá-los para todos (o LEIAME.txt do zip explica como). Também serve de cópia de segurança.
+                </li>
+                <li>
+                  <b>Carregar treinos</b>: abre um .zip baixado antes (ou um arquivo .json de treino) e traz os treinos como locais. Se você já tiver treinos locais, escolhe se quer adicionar os novos a eles ou substituí-los.
+                </li>
+                <li>
+                  Os ícones à direita dos botões <b>filtram</b> a lista (todos, só os locais ou só os do site) e <b>ordenam</b> por nome ou pela duração total.
                 </li>
               </ul>
               {!api.persistente() && <p className="aviso">O armazenamento está bloqueado neste navegador, então os treinos locais se perdem ao fechar a página.</p>}

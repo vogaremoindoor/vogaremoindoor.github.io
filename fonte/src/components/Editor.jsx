@@ -47,8 +47,8 @@ function CampoTempo({ valor, onChange, rotulo }) {
   const seg = valor % 60;
   const num = (v, max) => Math.min(max, Math.max(0, parseInt(v, 10) || 0));
   // Os botões mexem no tempo TOTAL: 59 s + 1 vira 1:00 e 1:00 − 1 vira 0:59. O tempo fica entre 1 s e 24 h.
-  const somar = (delta) => onChange(Math.min(MAX_DURACAO_S, Math.max(1, valor + delta)));
-  const pode = (delta) => valor + delta >= 1 && valor + delta <= MAX_DURACAO_S;
+  const somar = (delta) => onChange(Math.min(MAX_DURACAO_S, Math.max(0, valor + delta)));
+  const pode = (delta) => valor + delta >= 0 && valor + delta <= MAX_DURACAO_S;
   return (
     <fieldset className="campo-tempo">
       <legend>{rotulo}</legend>

@@ -124,3 +124,18 @@ export const Fala = ({ desligado, ...p }) => (
     {desligado && <Corte />}
   </svg>
 );
+export const Filtro = (p) => (
+  <svg {...base} {...p}>
+    <path d="M3 5h18l-7 8.5V19l-4 2v-7.5L3 5Z" />
+  </svg>
+);
+export const Ordem = (p) => (
+  <svg {...base} {...p}>
+    <path d="M7 4v16M3 8l4-4 4 4M17 20V4M13 16l4 4 4-4" />
+  </svg>
+);
+export const Marcado = (p) => (
+  <svg {...base} {...p}>
+    <path d="M5 12.5l4.5 4.5L19 7" />
+  </svg>
+);

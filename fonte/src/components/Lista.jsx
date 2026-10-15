@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { descricaoGrafico } from "../../shared/grafico.js";
-import { nomeArquivoZip, resumoDuracao } from "../../shared/treino.js";
+import { compararTreinos, duracaoPorTipo, nomeArquivoZip, resumoDuracao } from "../../shared/treino.js";
 import * as api from "../api.js";
 import { salvarArquivo } from "../arquivo.js";
+import { lerArquivoTreinos } from "../carregar.js";
 import { textoLeiame } from "../publicar.js";
 import { Link } from "../router.jsx";
 import { criarZip } from "../zip.js";
@@ -10,13 +11,48 @@ import GraficoTreino from "./GraficoTreino.jsx";
 import Logo from "./Logo.jsx";
 import { BotaoTema } from "../tema.jsx";
 import VogaInfo from "./Info.jsx";
+import MenuLista from "./MenuLista.jsx";
 import Confirmacao from "./Confirmacao.jsx";
-import { Baixar, Copiar, Lapis, Lixeira, Mais, Play } from "./Icones.jsx";
+import { Baixar, Copiar, Filtro, Lapis, Lixeira, Mais, Ordem, Play, Subir } from "./Icones.jsx";
 
 // "48:00 (35:00/13:00)" = total (tempo remando / tempo descansando)
 const resumo = (treino) => resumoDuracao(treino.etapas);
 
+// Filtro e ordem da lista, lembrados neste navegador.
+const CHAVE_LISTA = "treino-remo:lista";
+const lerPreferencias = () => {
+  try {
+    const p = JSON.parse(localStorage.getItem(CHAVE_LISTA) || "{}");
+    return {
+      filtro: ["todos", "locais", "site"].includes(p.filtro) ? p.filtro : "todos",
+      ordem: ["nome", "duracao"].includes(p.ordem) ? p.ordem : "nome",
+    };
+  } catch {
+    return { filtro: "todos", ordem: "nome" };
+  }
+};
+const duracaoTreino = (t) => {
+  try {
+    return t.invalido ? Infinity : duracaoPorTipo(t.etapas).total;
+  } catch {
+    return Infinity;
+  }
+};
+
 export default function Lista() {
+  const [preferencias, setPreferencias] = useState(lerPreferencias);
+  const [cargaPendente, setCargaPendente] = useState(null);
+  const entradaArquivo = useRef(null);
+  const mudarPreferencia = (mudanca) =>
+    setPreferencias((p) => {
+      const nova = { ...p, ...mudanca };
+      try {
+        localStorage.setItem(CHAVE_LISTA, JSON.stringify(nova));
+      } catch {
+        /* sem armazenamento: vale só nesta sessão */
+      }
+      return nova;
+    });
   const [treinos, setTreinos] = useState(null);
   const [offline, setOffline] = useState(false);
   const [erro, setErro] = useState("");
@@ -100,6 +136,63 @@ export default function Lista() {
     }
   };
 
+  const visiveis = treinos
+    ?.filter((t) => preferencias.filtro === "todos" || (preferencias.filtro === "locais" ? !t.somenteLeitura : t.somenteLeitura))
+    .sort(preferencias.ordem === "duracao" ? (a, b) => duracaoTreino(a) - duracaoTreino(b) || compararTreinos(a, b) : compararTreinos);
+
+  // "Carregar treinos": grava como locais os treinos do arquivo escolhido (adicionando ou substituindo os atuais).
+  const concluirCarga = async (carga, substituir) => {
+    setCargaPendente(null);
+    setOcupado(true);
+    try {
+      const { novos, repetidos } = api.importarTreinos(carga.validos, substituir);
+      let iguaisAoSite = 0;
+      try {
+        iguaisAoSite = await api.quantosJaPublicados(novos);
+      } catch {
+        /* sem conexão: só não conta */
+      }
+      await carregar();
+      const n = novos.length;
+      setMensagem(
+        [
+          n === 0
+            ? "Nenhum treino novo foi carregado."
+            : `${n} ${n === 1 ? "treino carregado" : "treinos carregados"} de ${carga.arquivo}${substituir ? ", substituindo os treinos locais anteriores" : ""}.`,
+          repetidos ? `${repetidos} ${repetidos === 1 ? "já existia e foi ignorado" : "já existiam e foram ignorados"}.` : "",
+          iguaisAoSite
+            ? `${iguaisAoSite} ${iguaisAoSite === 1 ? "é igual a um treino do site e aparece como treino do site" : "são iguais a treinos do site e aparecem como treinos do site"}.`
+            : "",
+          carga.invalidos.length ? `Ficaram de fora por erro: ${carga.invalidos.join("; ")}.` : "",
+        ]
+          .filter(Boolean)
+          .join(" "),
+      );
+    } catch (e) {
+      setErro(e.message || "Não foi possível carregar os treinos.");
+    }
+    setOcupado(false);
+  };
+
+  const escolherArquivo = async (e) => {
+    const arquivo = e.target.files && e.target.files[0];
+    e.target.value = ""; // permite escolher o mesmo arquivo de novo
+    if (!arquivo) return;
+    setMensagem("");
+    setErro("");
+    try {
+      const lido = await lerArquivoTreinos(arquivo);
+      if (lido.validos.length === 0) {
+        return setErro(`Nenhum treino válido em ${arquivo.name}.${lido.invalidos.length ? ` Com erro: ${lido.invalidos.join("; ")}.` : ""}`);
+      }
+      const carga = { ...lido, arquivo: arquivo.name, locais: api.quantidadeLocais() };
+      if (carga.locais > 0) setCargaPendente(carga);
+      else await concluirCarga(carga, false);
+    } catch (e) {
+      setErro(`Não foi possível ler ${arquivo.name}: ${e.message || e}.`);
+    }
+  };
+
   return (
     <main className="pagina">
       <header className="cabecalho">
@@ -125,6 +218,46 @@ export default function Lista() {
             <Baixar /> Baixar treinos locais
           </button>
         )}
+        {__MODO_LOCAL__ && (
+          <>
+            <button
+              type="button"
+              className="btn btn-contorno btn-secundario"
+              disabled={ocupado}
+              onClick={() => entradaArquivo.current?.click()}
+              title="Carrega treinos de um .zip baixado antes (ou de um arquivo .json) como treinos locais"
+            >
+              <Subir /> Carregar treinos
+            </button>
+            <input ref={entradaArquivo} type="file" accept=".zip,.json,application/zip,application/json" hidden onChange={escolherArquivo} />
+          </>
+        )}
+        <div className="lista-ferramentas">
+          <MenuLista
+            icone={Filtro}
+            rotulo="Filtrar"
+            titulo="Mostrar"
+            valor={preferencias.filtro}
+            ativo={preferencias.filtro !== "todos"}
+            opcoes={[
+              { valor: "todos", rotulo: "Todos os treinos" },
+              { valor: "locais", rotulo: "Só os locais" },
+              { valor: "site", rotulo: "Só os do site" },
+            ]}
+            onEscolher={(filtro) => mudarPreferencia({ filtro })}
+          />
+          <MenuLista
+            icone={Ordem}
+            rotulo="Ordenar"
+            titulo="Ordenar por"
+            valor={preferencias.ordem}
+            opcoes={[
+              { valor: "nome", rotulo: "Nome" },
+              { valor: "duracao", rotulo: "Duração total" },
+            ]}
+            onEscolher={(ordem) => mudarPreferencia({ ordem })}
+          />
+        </div>
       </div>
 
       {mensagem && <p className="aviso aviso-ok" role="status">{mensagem}</p>}
@@ -134,9 +267,14 @@ export default function Lista() {
       {treinos?.length === 0 && !erro && (
         <p className="vazio">Nenhum treino ainda. Toque em “Novo treino”.</p>
       )}
+      {treinos?.length > 0 && visiveis.length === 0 && (
+        <p className="vazio">
+          {preferencias.filtro === "locais" ? "Nenhum treino local. Crie um em “Novo treino” ou use “Carregar treinos”." : "Nenhum treino do site."}
+        </p>
+      )}
 
       <ul className="cartoes">
-        {treinos?.map((t) =>
+        {visiveis?.map((t) =>
           t.invalido ? (
             // arquivo da pasta treinos que não deu para usar: mostra o motivo em vez de esconder
             <li key={t.id} className="cartao cartao-invalido">
@@ -194,6 +332,30 @@ export default function Lista() {
           ),
         )}
       </ul>
+
+      {cargaPendente && (
+        <div className="modal" role="dialog" aria-modal="true" aria-labelledby="carga-titulo">
+          <div className="modal-caixa">
+            <p id="carga-titulo">
+              {`Carregar ${cargaPendente.validos.length} ${cargaPendente.validos.length === 1 ? "treino" : "treinos"} de ${cargaPendente.arquivo}?`}
+            </p>
+            <p className="modal-detalhe">
+              {`Você já tem ${cargaPendente.locais} ${cargaPendente.locais === 1 ? "treino local" : "treinos locais"}. Adicionar mantém os atuais e inclui os novos; substituir apaga os atuais e deixa só os carregados.`}
+            </p>
+            <div className="modal-botoes modal-botoes-3">
+              <button type="button" className="btn btn-contorno" onClick={() => setCargaPendente(null)}>
+                Cancelar
+              </button>
+              <button type="button" className="btn btn-contorno btn-perigo-texto" onClick={() => concluirCarga(cargaPendente, true)}>
+                Substituir
+              </button>
+              <button type="button" className="btn btn-verde" onClick={() => concluirCarga(cargaPendente, false)} autoFocus>
+                Adicionar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {paraExcluir && (
         <Confirmacao

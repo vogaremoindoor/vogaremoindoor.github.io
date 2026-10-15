@@ -81,10 +81,10 @@ function validarLista(lista, profundidade, contexto) {
     const onde = `${contexto}, etapa ${i + 1}`;
     if (!e || typeof e !== "object") return `${onde}: inválida`;
     if (e.tipo === "remada") {
-      if (!inteiro(e.duracao_s, 1, MAX_DURACAO_S)) return `${onde}: duração inválida`;
+      if (!inteiro(e.duracao_s, 1, MAX_DURACAO_S)) return `${onde}: a duração precisa ser maior que zero`;
       if (!inteiro(e.voga, VOGA_MIN, VOGA_MAX)) return `${onde}: voga deve ser um número de ${VOGA_MIN} a ${VOGA_MAX}`;
     } else if (e.tipo === "descanso") {
-      if (!inteiro(e.duracao_s, 1, MAX_DURACAO_S)) return `${onde}: duração inválida`;
+      if (!inteiro(e.duracao_s, 1, MAX_DURACAO_S)) return `${onde}: a duração precisa ser maior que zero`;
     } else if (e.tipo === "repeticao") {
       if (profundidade >= MAX_PROFUNDIDADE) return `${onde}: repetições aninhadas demais`;
       if (!inteiro(e.vezes, 1, 99)) return `${onde}: repetir de 1 a 99 vezes`;
