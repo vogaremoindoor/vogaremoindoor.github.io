@@ -1,4 +1,4 @@
-const base = {
+export const base = {
   width: 22,
   height: 22,
   viewBox: "0 0 24 24",

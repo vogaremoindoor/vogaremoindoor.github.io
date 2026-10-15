@@ -497,3 +497,14 @@ input[type="number"]::-webkit-inner-spin-button { display: none; }
 /* treinos locais (criados neste navegador): fundo destacado e etiqueta "local" */
 .cartao.cartao-local { background: var(--card-local); }
 .selo-local { border-color: var(--verde); color: var(--verde); }
+
+/* ---------- botão (ⓘ) e janela "Sobre o Voga" ---------- */
+.cabecalho-botoes { display: flex; align-items: center; flex: none; }
+.info-caixa { width: min(520px, 100%); max-height: calc(100dvh - 48px); overflow-y: auto; }
+.info-topo { display: flex; align-items: center; gap: 16px; }
+.info-logo { width: 56px; height: 56px; flex: none; }
+.info-texto { display: flex; flex-direction: column; gap: 12px; }
+.modal-caixa .info-texto p { font-size: 16px; font-weight: 400; line-height: 1.45; color: var(--texto); }
+.info-texto h2 { margin: 6px 0 0; font-size: 18px; font-weight: 700; }
+.info-texto ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 16px; line-height: 1.45; }
+.modal-caixa .info-texto .aviso { font-size: 15px; }

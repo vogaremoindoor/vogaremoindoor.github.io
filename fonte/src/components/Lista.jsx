@@ -9,6 +9,7 @@ import { criarZip } from "../zip.js";
 import GraficoTreino from "./GraficoTreino.jsx";
 import Logo from "./Logo.jsx";
 import { BotaoTema } from "../tema.jsx";
+import VogaInfo from "./Info.jsx";
 import Confirmacao from "./Confirmacao.jsx";
 import { Baixar, Copiar, Lapis, Lixeira, Mais, Play } from "./Icones.jsx";
 
@@ -109,7 +110,10 @@ export default function Lista() {
             <p>Remo Indoor</p>
           </div>
         </div>
-        <BotaoTema />
+        <div className="cabecalho-botoes">
+          <VogaInfo />
+          <BotaoTema />
+        </div>
       </header>
       <div className="acoes-lista">
         <Link className="btn btn-verde" para="/novo">
@@ -190,15 +194,6 @@ export default function Lista() {
           ),
         )}
       </ul>
-
-      {__MODO_LOCAL__ && (
-        <p className="rodape-teste">
-          Os treinos que você cria ficam salvos só neste navegador e aparecem marcados como “local”.
-          {treinos?.some((t) => t.somenteLeitura) && " Os demais vêm da pasta treinos do site e não podem ser editados aqui (use Duplicar). Para publicar os marcados como “local” no site, use Baixar treinos locais."}
-          {!api.persistente() && " O armazenamento está bloqueado aqui, então eles se perdem ao fechar a página."}
-        </p>
-      )}
-
 
       {paraExcluir && (
         <Confirmacao
