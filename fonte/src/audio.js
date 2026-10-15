@@ -113,10 +113,11 @@ function tom(nos, freq, quando, duracao, volume, tipo = "triangle") {
 }
 
 // ---------- falas ----------
-// "Voga N" (antes de uma remada), "5 segundos" e "Vai!" (ao começar a remada) são MP3s decodificados
+// "Voga N" (antes de uma remada), "5 segundos", "Vai!" (ao começar a remada) e "Respira" (ao começar um descanso)
+// são MP3s decodificados
 // uma vez, ao iniciar o treino, e tocados no relógio do treino exatamente como os bipes.
 
-const buffers = new Map(); // chave -> AudioBuffer ("voga:20", "5seg", "vai")
+const buffers = new Map(); // chave -> AudioBuffer ("voga:20", "5seg", "vai", "respira")
 const GANHO_VOZ = 1;
 const FOLGA_FALA_MS = 250; // pausa entre o fim de "Voga N" e o "5 segundos"
 const INICIO_FALA_MS = 150; // "Voga N" de etapa curta: logo depois que a etapa começa
@@ -133,6 +134,7 @@ const bytesVozes = new Map(); // chave -> Promise<ArrayBuffer | null> (baixados 
 const chavesDoTreino = (passos) => {
   const chaves = new Set(["5seg", "vai"]);
   for (const p of passos) if (p.tipo === "remada") chaves.add(chaveVoga(p.voga));
+  if (passos.some((p) => p.tipo === "descanso")) chaves.add("respira");
   return [...chaves];
 };
 // "voga:24" -> audio/voga-24.mp3 (relativo à página: funciona na raiz e em subpasta, como no github.io/repo/)
@@ -266,20 +268,24 @@ const bipeLongo = (t, tipo, comVoz = false) => {
 };
 const fala = (t, chave) => ({ t, voz: chave, notas: [] });
 
-/** Bipe de troca avulso (agudo se a etapa que começa é remada, grave se é descanso) + "Vai!" na remada. */
+// Fala do início de uma etapa: "Vai!" na remada, "Respira" no descanso (se a fala estiver carregada).
+const falaDoInicio = (tipo) => (tipo === "remada" ? "vai" : "respira");
+const temFalaDoInicio = (tipo) => (tipo === "remada" ? temVoz("vai") : tipo === "descanso" && temVoz("respira"));
+
+/** Bipe de troca avulso (agudo se a etapa que começa é remada, grave se é descanso) + "Vai!" ou "Respira". */
 export const sinalTroca = (t, tipo) => {
-  const comVai = tipo === "remada" && temVoz("vai");
-  return [bipeLongo(t, tipo, comVai), ...(comVai ? [fala(t, "vai")] : [])];
+  const comVoz = temFalaDoInicio(tipo);
+  return [bipeLongo(t, tipo, comVoz), ...(comVoz ? [fala(t, falaDoInicio(tipo))] : [])];
 };
 
 /**
  * Contagem antes do treino: um bipe por segundo a partir de `t0` e o bipe de largada ao zerar.
  * `primeiroPasso` é o 1º passo do treino (ou só o seu tipo). Se for remada: "Voga N" junto do 1º
- * bipe da contagem e "Vai!" na largada.
+ * bipe da contagem e "Vai!" na largada; se for descanso, "Respira" na largada.
  */
 export function sinaisContagem(t0, segundos, primeiroPasso) {
   const tipo = typeof primeiroPasso === "string" ? primeiroPasso : primeiroPasso?.tipo;
-  const comVai = tipo === "remada" && temVoz("vai");
+  const comVai = temFalaDoInicio(tipo);
   const sinais = [];
   for (let k = 0; k < segundos; k++) sinais.push(bipeCurto(t0 + k * 1000));
   sinais.push(bipeLongo(t0 + segundos * 1000, tipo, comVai));
@@ -289,7 +295,7 @@ export function sinaisContagem(t0, segundos, primeiroPasso) {
       sinais.push(fala(t0, chave));
     }
     if (comVai) sinais.push(fala(t0 + segundos * 1000, "vai"));
-  }
+  } else if (comVai) sinais.push(fala(t0 + segundos * 1000, "respira"));
   return sinais;
 }
 
@@ -320,7 +326,8 @@ function falasAntesDaRemada(proximo, inicio, fim, total) {
  *  - bipes curtos nos últimos 3 segundos de cada etapa (etapas de 5 s ou mais)
  *  - bipe longo no fim de cada etapa: agudo se a próxima é remada, grave se é descanso
  *  - três notas subindo no fim do treino
- *  - falas (quando carregadas): "Voga N" e "5 segundos" antes de uma remada, "Vai!" quando ela começa
+ *  - falas (quando carregadas): "Voga N" e "5 segundos" antes de uma remada, "Vai!" quando ela começa,
+ *    "Respira" quando um descanso começa (num descanso, as falas da remada seguinte só vêm depois do "Respira")
  * `totalAtualMs` = duração total do passo `indice` (inclui os "+30 s" já somados).
  */
 export function sinaisTreino(passos, indice, fimDoPasso, totalAtualMs = passos[indice].duracao_s * 1000) {
@@ -334,12 +341,11 @@ export function sinaisTreino(passos, indice, fimDoPasso, totalAtualMs = passos[i
     }
     const proximo = passos[i + 1];
     if (proximo) {
-      const comVai = proximo.tipo === "remada" && temVoz("vai");
-      sinais.push(bipeLongo(fim, proximo.tipo, comVai));
-      if (proximo.tipo === "remada") {
-        sinais.push(...falasAntesDaRemada(proximo, fim - total, fim, total));
-        if (comVai) sinais.push(fala(fim, "vai"));
-      }
+      const comVoz = temFalaDoInicio(proximo.tipo);
+      const respira = passos[i].tipo === "descanso" && temVoz("respira") ? duracaoVozMs("respira") + INICIO_FALA_MS : 0;
+      sinais.push(bipeLongo(fim, proximo.tipo, comVoz));
+      if (proximo.tipo === "remada") sinais.push(...falasAntesDaRemada(proximo, fim - total + respira, fim, total - respira));
+      if (comVoz) sinais.push(fala(fim, falaDoInicio(proximo.tipo)));
     } else {
       sinais.push({
         t: fim,
