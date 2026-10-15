@@ -785,3 +785,10 @@ input[type="number"]::-webkit-inner-spin-button { display: none; }
 .config-secao > .config-texto {
   flex: none;
 }
+
+/* botões ±30 s ao lado dos segundos (editor) */
+.passos-30 { width: 40px; }
+.passos-30 .passo { font-family: var(--fonte-num); font-size: 14px; font-weight: 700; line-height: 1; letter-spacing: 0.01em; }
+.etapas-aninhadas .campo-tempo { gap: 4px; }
+.etapas-aninhadas .campo-tempo input[type="number"] { width: 54px; }
+.etapas-aninhadas .passos-30 { width: 34px; }

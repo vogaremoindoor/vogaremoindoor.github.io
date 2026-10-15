@@ -4,24 +4,17 @@ import * as api from "../api.js";
 import { navegar, Link } from "../router.jsx";
 import { BotaoTema } from "../tema.jsx";
 import { Baixo, Cima, Fechar, Mais, Voltar } from "./Icones.jsx";
-import { CampoNumero } from "./Passos.jsx";
+import { CampoNumero, Passos30 } from "./Passos.jsx";
 
 let contador = 0;
 const chave = () => ++contador;
 let ultimaInserida = null; // chave da etapa recém-inserida: a tela rola até ela e destaca (ver LinhaEtapa)
 
-const novaEtapa = (tipo) => {
-  if (tipo === "remada") return { chave: chave(), tipo, duracao_s: 240, voga: 20 };
-  if (tipo === "descanso") return { chave: chave(), tipo, duracao_s: 60 };
-  return {
-    chave: chave(),
-    tipo: "repeticao",
-    vezes: 2,
-    etapas: [
-      { chave: chave(), tipo: "remada", duracao_s: 120, voga: 22 },
-      { chave: chave(), tipo: "descanso", duracao_s: 30 },
-    ],
-  };
+// Etapa nova: copia o tempo (e a voga) da etapa anterior do mesmo tipo, se houver; repetição começa vazia.
+const novaEtapa = (tipo, anterior) => {
+  if (tipo === "remada") return { chave: chave(), tipo, duracao_s: anterior ? anterior.duracao_s : 240, voga: anterior ? anterior.voga : 16 };
+  if (tipo === "descanso") return { chave: chave(), tipo, duracao_s: anterior ? anterior.duracao_s : 60 };
+  return { chave: chave(), tipo: "repeticao", vezes: 2, etapas: [] };
 };
 
 // As chaves só existem na tela (para o React); saem antes de salvar.
@@ -46,14 +39,22 @@ function CampoTempo({ valor, onChange, rotulo }) {
         {(teclas) => <input type="number" inputMode="numeric" min="0" max="999" value={min} aria-label={`${rotulo}: minutos`} onChange={(e) => onChange(num(e.target.value, 999) * 60 + seg)} onKeyDown={teclas} onFocus={(e) => e.target.select()} />}
       </CampoNumero>
       <span aria-hidden="true">:</span>
-      <CampoNumero rotuloMais="Aumentar 1 segundo" rotuloMenos="Diminuir 1 segundo" onMais={() => somar(1)} onMenos={() => somar(-1)} podeMais={pode(1)} podeMenos={pode(-1)}>
+      <CampoNumero
+        rotuloMais="Aumentar 1 segundo"
+        rotuloMenos="Diminuir 1 segundo"
+        onMais={() => somar(1)}
+        onMenos={() => somar(-1)}
+        podeMais={pode(1)}
+        podeMenos={pode(-1)}
+        extra={<Passos30 onMais={() => somar(30)} onMenos={() => somar(-30)} podeMais={pode(30)} podeMenos={pode(-30)} />}
+      >
         {(teclas) => <input type="number" inputMode="numeric" min="0" max="59" value={String(seg).padStart(2, "0")} aria-label={`${rotulo}: segundos`} onChange={(e) => onChange(min * 60 + num(e.target.value, 59))} onKeyDown={teclas} onFocus={(e) => e.target.select()} />}
       </CampoNumero>
     </fieldset>
   );
 }
 
-function LinhaEtapa({ etapa, indice, total, onChange, onRemover, onMover, aninhada }) {
+function LinhaEtapa({ etapa, indice, total, onChange, onRemover, onMover, aninhada, anteriores }) {
   const ref = useRef(null);
   const vogaInvalida = etapa.tipo === "remada" && (etapa.voga < VOGA_MIN || etapa.voga > VOGA_MAX);
   // +/−: dentro da faixa 12–46 (de fora da faixa, o primeiro toque já entra nela)
@@ -111,7 +112,7 @@ function LinhaEtapa({ etapa, indice, total, onChange, onRemover, onMover, aninha
             </CampoNumero>
             <span>vezes</span>
           </label>
-          <ListaEtapas etapas={etapa.etapas} onChange={(etapas) => onChange({ ...etapa, etapas })} aninhada />
+          <ListaEtapas etapas={etapa.etapas} onChange={(etapas) => onChange({ ...etapa, etapas })} aninhada anteriores={anteriores} />
         </>
       )}
     </li>
@@ -167,7 +168,17 @@ function PontoDeInsercao({ indice, aninhada, onInserir }) {
   );
 }
 
-function ListaEtapas({ etapas, onChange, aninhada = false }) {
+// As etapas simples (remada e descanso) em ordem, com as de dentro das repetições.
+function planas(lista) {
+  return lista.flatMap((e) => (e.tipo === "repeticao" ? planas(e.etapas || []) : [e]));
+}
+function anteriorDoTipo(lista, tipo) {
+  for (let i = lista.length - 1; i >= 0; i--) if (lista[i].tipo === tipo) return lista[i];
+  return null;
+}
+
+// `anteriores`: as etapas que vêm antes desta lista (para uma repetição, as de fora dela), para copiar a anterior.
+function ListaEtapas({ etapas, onChange, aninhada = false, anteriores = [] }) {
   const mudar = (i, nova) => onChange(etapas.map((e, j) => (j === i ? nova : e)));
   const remover = (i) => onChange(etapas.filter((_, j) => j !== i));
   const mover = (i, d) => {
@@ -177,9 +188,9 @@ function ListaEtapas({ etapas, onChange, aninhada = false }) {
     [copia[i], copia[j]] = [copia[j], copia[i]];
     onChange(copia);
   };
-  const adicionar = (tipo) => onChange([...etapas, novaEtapa(tipo)]);
+  const adicionar = (tipo) => onChange([...etapas, novaEtapa(tipo, anteriorDoTipo([...anteriores, ...planas(etapas)], tipo))]);
   const inserir = (i, tipo) => {
-    const nova = novaEtapa(tipo);
+    const nova = novaEtapa(tipo, anteriorDoTipo([...anteriores, ...planas(etapas.slice(0, i))], tipo));
     ultimaInserida = nova.chave;
     onChange([...etapas.slice(0, i), nova, ...etapas.slice(i)]);
   };
@@ -190,7 +201,7 @@ function ListaEtapas({ etapas, onChange, aninhada = false }) {
         {etapas.map((e, i) => (
           <Fragment key={e.chave}>
             <PontoDeInsercao indice={i} aninhada={aninhada} onInserir={(tipo) => inserir(i, tipo)} />
-            <LinhaEtapa etapa={e} indice={i} total={etapas.length} aninhada={aninhada} onChange={(n) => mudar(i, n)} onRemover={() => remover(i)} onMover={(d) => mover(i, d)} />
+            <LinhaEtapa etapa={e} indice={i} total={etapas.length} aninhada={aninhada} anteriores={[...anteriores, ...planas(etapas.slice(0, i))]} onChange={(n) => mudar(i, n)} onRemover={() => remover(i)} onMover={(d) => mover(i, d)} />
           </Fragment>
         ))}
       </ul>
@@ -314,7 +325,7 @@ function CampoTags({ tags, onChange, sugestoes }) {
 
 export default function Editor({ id }) {
   const [nome, setNome] = useState("");
-  const [etapas, setEtapas] = useState(() => (id ? [] : comChaves([{ tipo: "remada", duracao_s: 240, voga: 20 }])));
+  const [etapas, setEtapas] = useState(() => (id ? [] : comChaves([{ tipo: "remada", duracao_s: 240, voga: 16 }])));
   const [carregando, setCarregando] = useState(Boolean(id));
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);

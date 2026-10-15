@@ -8,7 +8,7 @@ export const INTERVALO_INICIAL_MS = 200;
 export const INTERVALO_MINIMO_MS = 100;
 const FATOR_ACELERACAO = 0.88;
 
-function BotaoPasso({ sinal, rotulo, onPasso, desativado }) {
+function BotaoPasso({ sinal, rotulo, onPasso, desativado, texto }) {
   const acao = useRef(onPasso);
   const bloqueado = useRef(desativado);
   acao.current = onPasso; // sempre o passo calculado com o valor atual
@@ -64,7 +64,7 @@ function BotaoPasso({ sinal, rotulo, onPasso, desativado }) {
         if (e.detail === 0 && !desativado) acao.current();
       }}
     >
-      {sinal === "+" ? <Mais aria-hidden="true" /> : <Menos aria-hidden="true" />}
+      {texto || (sinal === "+" ? <Mais aria-hidden="true" /> : <Menos aria-hidden="true" />)}
     </button>
   );
 }
@@ -75,6 +75,16 @@ export default function Passos({ rotuloMais, rotuloMenos, onMais, onMenos, podeM
     <span className="passos">
       <BotaoPasso sinal="+" rotulo={rotuloMais} onPasso={onMais} desativado={!podeMais} />
       <BotaoPasso sinal="-" rotulo={rotuloMenos} onPasso={onMenos} desativado={!podeMenos} />
+    </span>
+  );
+}
+
+/** Par de botões +30 e −30 (segundos), ao lado da caixa dos segundos no editor. */
+export function Passos30({ onMais, onMenos, podeMais, podeMenos }) {
+  return (
+    <span className="passos passos-30">
+      <BotaoPasso sinal="+" texto="+30" rotulo="Aumentar 30 segundos" onPasso={onMais} desativado={!podeMais} />
+      <BotaoPasso sinal="-" texto="−30" rotulo="Diminuir 30 segundos" onPasso={onMenos} desativado={!podeMenos} />
     </span>
   );
 }
@@ -90,12 +100,13 @@ export const teclasDePasso = (onMais, onMenos, podeMais, podeMenos) => (e) => {
   }
 };
 
-/** Caixa numérica com os botões + e − ao lado (e ↑ ↓ no teclado). `passo(delta)` aplica o ajuste. */
-export function CampoNumero({ children, rotuloMais, rotuloMenos, onMais, onMenos, podeMais, podeMenos }) {
+/** Caixa numérica com os botões + e − ao lado (e ↑ ↓ no teclado); `extra` vem depois (ex.: os botões ±30). */
+export function CampoNumero({ children, rotuloMais, rotuloMenos, onMais, onMenos, podeMais, podeMenos, extra }) {
   return (
     <span className="campo-numero">
       {children(teclasDePasso(onMais, onMenos, podeMais, podeMenos))}
       <Passos rotuloMais={rotuloMais} rotuloMenos={rotuloMenos} onMais={onMais} onMenos={onMenos} podeMais={podeMais} podeMenos={podeMenos} />
+      {extra}
     </span>
   );
 }
