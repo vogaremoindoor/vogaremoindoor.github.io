@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { descricaoGrafico } from "../../shared/grafico.js";
-import { compararTreinos, duracaoPorTipo, nomeArquivoZip, resumoDuracao } from "../../shared/treino.js";
+import { compararTreinos, duracaoPorTipo, nomeArquivoZip, normalizarTags, resumoDuracao } from "../../shared/treino.js";
 import * as api from "../api.js";
 import { salvarArquivo } from "../arquivo.js";
 import { lerArquivoTreinos } from "../carregar.js";
@@ -89,7 +89,7 @@ export default function Lista() {
   const duplicar = async (t) => {
     setOcupado(true);
     try {
-      await api.criar({ nome: `${t.nome} (cópia)`.slice(0, 80), etapas: t.etapas });
+      await api.criar({ nome: `${t.nome} (cópia)`.slice(0, 80), tags: normalizarTags(t.tags), etapas: t.etapas });
       await carregar();
     } catch (e) {
       setErro(e.message);
@@ -310,6 +310,13 @@ export default function Lista() {
                       </span>
                     )}
                   </small>
+                  {normalizarTags(t.tags).length > 0 && (
+                    <span className="cartao-tags">
+                      {normalizarTags(t.tags).map((tag) => (
+                        <span key={tag} className="tag">{tag}</span>
+                      ))}
+                    </span>
+                  )}
                   <span className="so-leitor">{descricaoGrafico(t.etapas)}</span>
                 </span>
               </Link>

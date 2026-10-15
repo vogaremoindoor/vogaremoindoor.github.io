@@ -97,11 +97,35 @@ function validarLista(lista, profundidade, contexto) {
   return null;
 }
 
+/**
+ * Tags de um treino: textos sem espaços sobrando, sem repetir (maiúsculas e minúsculas contam como iguais),
+ * na ordem em que aparecem. Qualquer coisa que não seja uma lista de textos vira lista vazia.
+ */
+export function normalizarTags(tags) {
+  const vistas = new Set();
+  const lista = [];
+  for (const t of Array.isArray(tags) ? tags : []) {
+    if (typeof t !== "string") continue;
+    const tag = t.trim().replace(/\s+/g, " ");
+    const chave = tag.toLocaleLowerCase("pt-BR");
+    if (tag && !vistas.has(chave)) {
+      vistas.add(chave);
+      lista.push(tag);
+    }
+  }
+  return lista;
+}
+
 /** Retorna uma mensagem de erro (string) ou null se o treino é válido. */
 export function validarTreino(t) {
   if (!t || typeof t !== "object") return "treino inválido";
   if (typeof t.nome !== "string" || t.nome.trim() === "") return "informe o nome do treino";
   if (t.nome.trim().length > 80) return "nome muito longo (máximo 80 caracteres)";
+  if (t.tags !== undefined) {
+    if (!Array.isArray(t.tags) || t.tags.some((x) => typeof x !== "string")) return "tags inválidas (use uma lista de textos)";
+    if (t.tags.some((x) => x.trim().length > 30)) return "tag muito longa (máximo 30 caracteres)";
+    if (normalizarTags(t.tags).length > 20) return "tags demais (máximo 20)";
+  }
   const erro = validarLista(t.etapas, 1, "treino");
   if (erro) return erro;
   if (achatar(t.etapas).length > MAX_PASSOS) return "treino com passos demais";
@@ -172,7 +196,7 @@ export function interpretarArquivoTreino(texto, id) {
     const nome = typeof dados?.nome === "string" && dados.nome.trim() ? dados.nome.trim().slice(0, 80) : id;
     return { id, nome, invalido: erro };
   }
-  return { id, nome: dados.nome.trim(), etapas: normalizarEtapas(dados.etapas) };
+  return { id, nome: dados.nome.trim(), tags: normalizarTags(dados.tags), etapas: normalizarEtapas(dados.etapas) };
 }
 
 // Uma etapa por linha (repetição abre um bloco): fácil de ler e de editar à mão.
@@ -195,9 +219,11 @@ function linhasEtapas(lista, recuo) {
   });
 }
 
-/** Conteúdo de um arquivo de treino, legível e editável à mão. */
-export const conteudoArquivoTreino = ({ nome, etapas }) =>
-  `{\n  "nome": ${JSON.stringify(nome.trim())},\n  "etapas": [\n${linhasEtapas(normalizarEtapas(etapas), 2).join("\n")}\n  ]\n}\n`;
+/** Conteúdo de um arquivo de treino, legível e editável à mão (o campo "tags" só aparece se houver tags). */
+export const conteudoArquivoTreino = ({ nome, etapas, tags }) =>
+  `{\n  "nome": ${JSON.stringify(nome.trim())},\n${
+    normalizarTags(tags).length ? `  "tags": [${normalizarTags(tags).map((t) => JSON.stringify(t)).join(", ")}],\n` : ""
+  }  "etapas": [\n${linhasEtapas(normalizarEtapas(etapas), 2).join("\n")}\n  ]\n}\n`;
 
 /** "Progressão de voga 16 → 36" -> "progressao-de-voga-16-36" (nome do arquivo sem a extensão). */
 export function slugDoNome(nome) {

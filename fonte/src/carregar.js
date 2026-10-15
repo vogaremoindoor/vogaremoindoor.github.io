@@ -1,6 +1,6 @@
 // "Carregar treinos" (versão estática): lê um .zip baixado antes por "Baixar treinos locais" (ou um .json de treino)
 // e devolve os treinos válidos, prontos para virar treinos locais (ver importarTreinos em api.local.js).
-import { normalizarEtapas, validarTreino } from "../shared/treino.js";
+import { normalizarEtapas, normalizarTags, validarTreino } from "../shared/treino.js";
 
 /** Arquivos .json de um .zip (sem o index.json e sem as sobras do macOS), como { nome, texto }. */
 async function lerZip(buffer) {
@@ -57,7 +57,7 @@ export async function lerArquivoTreinos(arquivo) {
     }
     const erro = validarTreino(dados);
     if (erro) invalidos.push(`${nome} (${erro})`);
-    else validos.push({ nome: dados.nome.trim(), etapas: normalizarEtapas(dados.etapas), arquivo: nome });
+    else validos.push({ nome: dados.nome.trim(), tags: normalizarTags(dados.tags), etapas: normalizarEtapas(dados.etapas), arquivo: nome });
   }
   return { validos, invalidos };
 }

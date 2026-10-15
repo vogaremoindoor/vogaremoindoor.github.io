@@ -526,3 +526,20 @@ input[type="number"]::-webkit-inner-spin-button { display: none; }
 .acoes-lista { gap: 8px; }
 .acoes-lista .btn-secundario { padding: 0 14px; }
 .modal-caixa:has(.modal-botoes-3) { width: min(480px, 100%); }
+
+/* ---------- tags (editor e cartões da lista) ---------- */
+.campo-tags { display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px; }
+.campo-tags > .campo-rotulo { color: var(--suave); font-size: 15px; font-weight: 600; letter-spacing: 0.04em; }
+.tags-caixa { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-height: 52px; padding: 6px 8px; border: 2px solid var(--borda); border-radius: 12px; background: var(--campo); }
+.tags-caixa:focus-within { border-color: var(--verde); }
+.tags-caixa input[type="text"] { flex: 1 1 140px; min-width: 0; min-height: 36px; padding: 0 6px; border: 0; border-radius: 8px; background: transparent; }
+.tags-caixa input[type="text"]:focus-visible { outline: none; }
+.tag { display: inline-flex; align-items: center; max-width: 100%; padding: 1px 10px; border: 1px solid var(--azul); border-radius: 999px; color: var(--azul); font-size: 13px; font-weight: 600; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tag-editavel { padding: 0; font-size: 15px; }
+.tag-texto { padding: 6px 2px 6px 12px; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; overflow: hidden; text-overflow: ellipsis; }
+.tag-remover { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border: 0; border-radius: 50%; background: transparent; color: inherit; font-size: 20px; line-height: 1; cursor: pointer; }
+.tag-remover:hover, .tag-texto:hover { background: var(--hover); }
+.btn-tag-add { min-height: 36px; padding: 0 14px; border: 1px solid var(--verde); border-radius: 999px; background: transparent; color: var(--verde); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.tags-dica { color: var(--suave); font-size: 13px; }
+.tags-erro { color: var(--perigo); font-size: 13px; font-weight: 600; }
+.cartao-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; min-width: 0; }

@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from "react";
-import { MAX_DURACAO_S, nomeDaCopia, normalizarEtapas, resumoDuracao, validarTreino, VOGA_MAX, VOGA_MIN } from "../../shared/treino.js";
+import { MAX_DURACAO_S, nomeDaCopia, normalizarEtapas, normalizarTags, resumoDuracao, validarTreino, VOGA_MAX, VOGA_MIN } from "../../shared/treino.js";
 import * as api from "../api.js";
 import { navegar, Link } from "../router.jsx";
 import { BotaoTema } from "../tema.jsx";
@@ -215,6 +215,113 @@ function ListaEtapas({ etapas, onChange, aninhada = false }) {
   );
 }
 
+/** Campo de tags do editor: cada tag é um botão (tocar = alterar; × = remover); Enter ou vírgula adiciona. */
+function CampoTags({ tags, onChange, sugestoes }) {
+  const [texto, setTexto] = useState("");
+  const [erro, setErro] = useState("");
+  const limpo = (t) => t.trim().replace(/\s+/g, " ");
+  const juntar = (novas) => {
+    const lista = normalizarTags([...tags, ...novas.map(limpo)]);
+    if (lista.length > 20) {
+      setErro("No máximo 20 tags por treino.");
+      return false;
+    }
+    onChange(lista);
+    setErro("");
+    return true;
+  };
+  const adicionar = () => {
+    const tag = limpo(texto);
+    if (!tag) {
+      setTexto("");
+      return true;
+    }
+    if (tag.length > 30) {
+      setErro("Cada tag pode ter no máximo 30 caracteres.");
+      return false;
+    }
+    const ok = juntar([tag]);
+    if (ok) setTexto("");
+    return ok;
+  };
+  const remover = (i) => {
+    onChange(tags.filter((_, j) => j !== i));
+    setErro("");
+  };
+  // tocar numa tag tira ela da lista e a põe na caixa de texto para alterar (o que estava digitado vira tag)
+  const alterar = (i) => {
+    const resto = tags.filter((_, j) => j !== i);
+    const digitado = limpo(texto);
+    onChange(digitado ? normalizarTags([...resto, digitado.slice(0, 30)]) : resto);
+    setTexto(tags[i]);
+    setErro("");
+  };
+  const opcoes = sugestoes.filter((s) => !tags.some((t) => t.toLocaleLowerCase("pt-BR") === s.toLocaleLowerCase("pt-BR")));
+
+  return (
+    <div className="campo-tags">
+      <span className="campo-rotulo" id="tags-rotulo">Tags</span>
+      <div className="tags-caixa">
+        {tags.map((t, i) => (
+          <span key={t} className="tag tag-editavel">
+            <button type="button" className="tag-texto" onClick={() => alterar(i)} title="Alterar" aria-label={`Alterar a tag ${t}`}>
+              {t}
+            </button>
+            <button type="button" className="tag-remover" onClick={() => remover(i)} title="Remover" aria-label={`Remover a tag ${t}`}>
+              ×
+            </button>
+          </span>
+        ))}
+        <input
+          type="text"
+          value={texto}
+          maxLength={30}
+          list="tags-sugestoes"
+          enterKeyHint="done"
+          autoCapitalize="none"
+          placeholder={tags.length ? "Outra tag…" : "Ex.: resistência, intervalado"}
+          aria-labelledby="tags-rotulo"
+          onChange={(e) => {
+            const v = e.target.value;
+            if (v.includes(",")) {
+              const partes = v.split(",");
+              const ultima = partes.pop();
+              juntar(partes.map((p) => p.slice(0, 30)));
+              setTexto(ultima);
+            } else {
+              setTexto(v);
+              if (erro) setErro("");
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              adicionar();
+            }
+          }}
+          onBlur={adicionar}
+        />
+        {texto.trim() && (
+          // onMouseDown evita o blur do campo antes do clique (que já adicionaria a tag)
+          <button type="button" className="btn-tag-add" onMouseDown={(e) => e.preventDefault()} onClick={adicionar}>
+            Adicionar
+          </button>
+        )}
+      </div>
+      <datalist id="tags-sugestoes">
+        {opcoes.map((s) => (
+          <option key={s} value={s} />
+        ))}
+      </datalist>
+      {erro ? (
+        <small className="tags-erro" role="alert">{erro}</small>
+      ) : (
+        <small className="tags-dica">Enter ou vírgula adiciona. Toque numa tag para alterá-la; × remove.</small>
+      )}
+    </div>
+  );
+}
+
 export default function Editor({ id }) {
   const [nome, setNome] = useState("");
   const [etapas, setEtapas] = useState(() => (id ? [] : comChaves([{ tipo: "remada", duracao_s: 240, voga: 20 }])));
@@ -226,6 +333,8 @@ export default function Editor({ id }) {
   const [original, setOriginal] = useState(null);
   const [nomesExistentes, setNomesExistentes] = useState([]);
   const nomeAutomatico = useRef(null); // nome "(cópia)" que o app colocou sozinho (se o usuário digitou outro, não mexemos)
+  const [tags, setTags] = useState([]);
+  const [sugestoesTags, setSugestoesTags] = useState([]); // tags de todos os treinos, para sugerir ao digitar
 
   useEffect(() => {
     if (!id) return;
@@ -233,6 +342,7 @@ export default function Editor({ id }) {
       .buscar(id)
       .then((t) => {
         setNome(t.nome);
+        setTags(normalizarTags(t.tags));
         setEtapas(comChaves(t.etapas));
         if (t.somenteLeitura) {
           setOriginal({ nome: t.nome, canonico: canonico(t.etapas), arquivo: `${String(id).replace(/^arq-/, "")}.json` });
@@ -242,6 +352,12 @@ export default function Editor({ id }) {
       .catch((e) => setErro(e.message))
       .finally(() => setCarregando(false));
   }, [id]);
+  useEffect(() => {
+    api
+      .listar()
+      .then((l) => setSugestoesTags(normalizarTags(l.treinos.flatMap((t) => t.tags || [])).sort((a, b) => a.localeCompare(b, "pt-BR"))))
+      .catch(() => {});
+  }, []);
 
   const modoCopia = original !== null;
   const etapasMudaram = modoCopia && canonico(limpar(etapas)) !== original.canonico;
@@ -260,7 +376,7 @@ export default function Editor({ id }) {
     }
   }, [etapas]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const treino = { nome, etapas: limpar(etapas) };
+  const treino = { nome, tags, etapas: limpar(etapas) };
   const problema = validarTreino(treino);
   // O total aparece mesmo sem nome; só some se alguma etapa estiver inválida.
   const total = validarTreino({ nome: "x", etapas: treino.etapas }) ? null : resumoDuracao(treino.etapas);
@@ -307,6 +423,8 @@ export default function Editor({ id }) {
         <span>Nome</span>
         <input type="text" value={nome} maxLength={80} placeholder="Ex.: Progressão de voga" onChange={(e) => setNome(e.target.value)} />
       </label>
+
+      <CampoTags tags={tags} onChange={setTags} sugestoes={sugestoesTags} />
 
       <ListaEtapas etapas={etapas} onChange={setEtapas} />
 

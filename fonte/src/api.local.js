@@ -8,6 +8,7 @@ import {
   conteudoArquivoTreino,
   interpretarArquivoTreino,
   normalizarEtapas,
+  normalizarTags,
   nomeArquivoDeNumero,
   numeroDoArquivo,
   validarTreino,
@@ -154,7 +155,7 @@ export async function criar(treino) {
   const erro = validarTreino(treino);
   if (erro) throw new ErroApi(erro, 400);
   const dados = ler();
-  const novo = { id: dados.proximoId, nome: treino.nome.trim(), etapas: copia(treino.etapas) };
+  const novo = { id: dados.proximoId, nome: treino.nome.trim(), tags: normalizarTags(treino.tags), etapas: copia(treino.etapas) };
   gravar({ ...dados, proximoId: dados.proximoId + 1, treinos: [...dados.treinos, novo] });
   return copia(novo);
 }
@@ -166,7 +167,7 @@ export async function atualizar(id, treino) {
   const dados = ler();
   if (!dados.treinos.some((x) => x.id === Number(id))) throw new ErroApi("Treino não encontrado.", 404);
   const antigo = dados.treinos.find((x) => x.id === Number(id));
-  const novo = { id: Number(id), nome: treino.nome.trim(), etapas: copia(treino.etapas), ...(antigo.arquivo && { arquivo: antigo.arquivo, exportado: antigo.exportado }) };
+  const novo = { id: Number(id), nome: treino.nome.trim(), tags: normalizarTags(treino.tags), etapas: copia(treino.etapas), ...(antigo.arquivo && { arquivo: antigo.arquivo, exportado: antigo.exportado }) };
   gravar({ ...dados, treinos: dados.treinos.map((x) => (x.id === novo.id ? novo : x)) });
   return copia(novo);
 }
@@ -286,7 +287,7 @@ export function importarTreinos(lista, substituir) {
     conteudos.add(conteudo);
     const guardaArquivo = numeroDoArquivo(t.arquivo) !== null && !usados.has(t.arquivo);
     if (guardaArquivo) usados.add(t.arquivo);
-    novos.push({ id: proximoId++, nome: t.nome, etapas: normalizarEtapas(t.etapas), ...(guardaArquivo && { arquivo: t.arquivo, exportado: hash(conteudo) }) });
+    novos.push({ id: proximoId++, nome: t.nome, tags: normalizarTags(t.tags), etapas: normalizarEtapas(t.etapas), ...(guardaArquivo && { arquivo: t.arquivo, exportado: hash(conteudo) }) });
   }
   gravar({ ...dados, proximoId, treinos: [...mantidos, ...novos] });
   return { novos, repetidos };
