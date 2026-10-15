@@ -19,7 +19,7 @@ import { Baixar, Copiar, Filtro, Lapis, Lixeira, Mais, Ordem, Play, Subir } from
 const resumo = (treino) => resumoDuracao(treino.etapas);
 
 // Filtro e ordem da lista, lembrados neste navegador.
-const CHAVE_LISTA = "treino-remo:lista";
+const CHAVE_LISTA = "voga:lista";
 const lerPreferencias = () => {
   try {
     const p = JSON.parse(localStorage.getItem(CHAVE_LISTA) || "{}");

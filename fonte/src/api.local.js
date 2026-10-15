@@ -14,7 +14,7 @@ import {
 } from "../shared/treino.js";
 import { crc32 } from "./zip.js";
 
-const CHAVE = "treino-remo:treinos";
+const CHAVE = "voga:treinos";
 
 export class ErroApi extends Error {
   constructor(mensagem, status) {
@@ -57,8 +57,8 @@ function gravar(dados) {
 
 export const persistente = () => {
   try {
-    localStorage.setItem("treino-remo:teste", "1");
-    localStorage.removeItem("treino-remo:teste");
+    localStorage.setItem("voga:teste", "1");
+    localStorage.removeItem("voga:teste");
     return true;
   } catch {
     return false;

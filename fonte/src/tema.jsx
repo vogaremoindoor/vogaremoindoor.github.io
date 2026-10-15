@@ -2,7 +2,7 @@ import { useSyncExternalStore } from "react";
 import { Lua, Sol } from "./components/Icones.jsx";
 
 // Tema claro/escuro. A escolha fica salva no navegador; o padrão é o escuro.
-const CHAVE = "treino-remo:tema";
+const CHAVE = "voga:tema";
 const COR_DA_BARRA = { escuro: "#0e1a14", claro: "#f5f7f4" };
 
 const lerSalvo = () => {

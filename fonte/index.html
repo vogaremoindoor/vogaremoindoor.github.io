@@ -18,6 +18,17 @@
       rel="stylesheet"
     />
     <title>Voga - Remo Indoor</title>
+    <script>
+      // Migra os dados salvos com o nome antigo do app (treino-remo:*) para as chaves novas (voga:*).
+      try {
+        for (const k of ["treinos", "tema", "lista"]) {
+          const antiga = `treino-remo:${k}`, nova = `voga:${k}`, v = localStorage.getItem(antiga);
+          if (v === null) continue;
+          if (localStorage.getItem(nova) === null) localStorage.setItem(nova, v);
+          localStorage.removeItem(antiga);
+        }
+      } catch {}
+    </script>
   </head>
   <body>
     <div id="root"></div>
