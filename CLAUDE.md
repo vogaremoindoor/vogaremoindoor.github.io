@@ -1,8 +1,10 @@
 # Voga · Remo Indoor (repositório do site)
 
-A raiz deste repositório é o **site compilado** publicado no GitHub Pages (`index.html`, `assets/`, `sw.js`,
-`audio/`, `icons/`, `treinos/`). O **código-fonte** fica em `fonte/`: leia `fonte/CLAUDE.md` antes de mudar o app.
+Este repositório guarda só o **site compilado** publicado no GitHub Pages (`index.html`, `assets/`, `sw.js`,
+`audio/`, `icons/`, `manifest.webmanifest`) e a pasta **`treinos/`** com os treinos do site.
 
-- Não edite `assets/`, `index.html` nem `sw.js` da raiz à mão: altere `fonte/`, rode `npm run build:pages` e
-  `npm run publicar:pages ..` dentro de `fonte/`.
-- `treinos/` da raiz é a pasta de treinos do site (o script de publicar não mexe nela).
+- O **código-fonte** fica no repositório privado **vogaremoindoor/vogaremoindoor**. Mudanças no app são feitas lá.
+- Não edite `assets/`, `index.html`, `sw.js`, `audio/` nem `icons/` aqui: eles são substituídos a cada nova versão
+  pelo workflow "Publicar site" do repositório dos fontes (commits "Publica vX.Y.Z").
+- `treinos/` é mantida **aqui** (zip do "Salvar treinos" → Upload files, com o `treinos/index.json` atualizado).
+  A publicação de uma nova versão nunca mexe nessa pasta.
