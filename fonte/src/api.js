@@ -69,6 +69,7 @@ export async function buscar(id) {
 }
 
 export const persistente = () => true;
+export const ehDeArquivo = () => false;
 export const criar = (treino) => req("/api/treinos", { method: "POST", body: treino });
 export const atualizar = (id, treino) => req(`/api/treinos/${encodeURIComponent(id)}`, { method: "PUT", body: treino });
 export const excluir = (id) => req(`/api/treinos/${encodeURIComponent(id)}`, { method: "DELETE" });

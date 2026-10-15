@@ -67,10 +67,10 @@ export default function VogaInfo() {
                   <b>Carregar treinos</b>: abre um .zip baixado antes (ou um arquivo .json de treino) e traz os treinos como locais. Se você já tiver treinos locais, escolhe se quer adicionar os novos a eles ou substituí-los.
                 </li>
                 <li>
-                  Os ícones à direita dos botões <b>filtram</b> a lista (todos, só os locais ou só os do site) e <b>ordenam</b> por nome ou pela duração total.
+                  Os ícones à direita dos botões <b>filtram</b> a lista (todos, só os locais ou só os do site) e <b>ordenam</b> por nome ou pela duração total, em ordem crescente ou decrescente.
                 </li>
               </ul>
-              <p className="info-versao">Versão 1.0.0 · 12/10/2026</p>
+              <p className="info-versao">Versão 1.2.0 · 12/10/2026</p>
               {!api.persistente() && <p className="aviso">O armazenamento está bloqueado neste navegador, então os treinos locais se perdem ao fechar a página.</p>}
             </div>
             <div className="modal-botoes">

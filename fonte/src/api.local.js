@@ -67,7 +67,7 @@ export const persistente = () => {
 
 // ---------- treinos da pasta treinos/ (arquivos do site) ----------
 const PREFIXO = "arq-"; // id de treino de arquivo: arq-<nome do arquivo sem .json>
-const ehDeArquivo = (id) => typeof id === "string" && id.startsWith(PREFIXO);
+export const ehDeArquivo = (id) => typeof id === "string" && id.startsWith(PREFIXO);
 const urlTreinos = (nome) => new URL(`treinos/${encodeURIComponent(nome)}`, document.baseURI).href;
 const SEM_REDE = "não foi possível ler o arquivo";
 const chaveArquivo = (nome) => String(nome).trim().toLowerCase().replace(/\.json$/, ""); // treino-002 = treino-002.json

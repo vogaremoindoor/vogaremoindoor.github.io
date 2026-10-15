@@ -3,7 +3,7 @@ import * as api from "./api.js";
 import Editor from "./components/Editor.jsx";
 import Lista from "./components/Lista.jsx";
 import Player from "./components/Player.jsx";
-import { Link, navegar, useRota } from "./router.jsx";
+import { Link, navegar, substituir, useRota } from "./router.jsx";
 
 const voltar = () => navegar("/");
 
@@ -28,8 +28,13 @@ function Execucao({ id }) {
 
 export default function App() {
   const [parte, id] = useRota();
+  // treino do site não se edita (só se duplica): #/editar/arq-… volta para a lista
+  const arquivoDoSite = parte === "editar" && id && api.ehDeArquivo(id);
+  useEffect(() => {
+    if (arquivoDoSite) substituir("/");
+  }, [arquivoDoSite]);
   if (parte === "novo") return <Editor />;
-  if (parte === "editar" && id) return <Editor key={id} id={id} />;
+  if (parte === "editar" && id && !arquivoDoSite) return <Editor key={id} id={id} />;
   if (parte === "treino" && id) return <Execucao key={id} id={id} />;
   return <Lista />;
 }

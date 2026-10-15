@@ -25,7 +25,7 @@ const lerPreferencias = () => {
     const p = JSON.parse(localStorage.getItem(CHAVE_LISTA) || "{}");
     return {
       filtro: ["todos", "locais", "site"].includes(p.filtro) ? p.filtro : "todos",
-      ordem: ["nome", "duracao"].includes(p.ordem) ? p.ordem : "nome",
+      ordem: ["nome", "nome-desc", "duracao", "duracao-desc"].includes(p.ordem) ? p.ordem : "nome",
     };
   } catch {
     return { filtro: "todos", ordem: "nome" };
@@ -37,6 +37,17 @@ const duracaoTreino = (t) => {
   } catch {
     return Infinity;
   }
+};
+const ORDENACOES = {
+  nome: (a, b) => compararTreinos(a, b),
+  "nome-desc": (a, b) => compararTreinos(b, a),
+  duracao: (a, b) => duracaoTreino(a) - duracaoTreino(b) || compararTreinos(a, b),
+  // os inválidos (duração infinita) ficam no fim também na ordem decrescente
+  "duracao-desc": (a, b) => {
+    const da = duracaoTreino(a);
+    const db = duracaoTreino(b);
+    return (da === Infinity) - (db === Infinity) || db - da || compararTreinos(a, b);
+  },
 };
 
 export default function Lista() {
@@ -133,7 +144,7 @@ export default function Lista() {
 
   const visiveis = treinos
     ?.filter((t) => preferencias.filtro === "todos" || (preferencias.filtro === "locais" ? !t.somenteLeitura : t.somenteLeitura))
-    .sort(preferencias.ordem === "duracao" ? (a, b) => duracaoTreino(a) - duracaoTreino(b) || compararTreinos(a, b) : compararTreinos);
+    .sort(ORDENACOES[preferencias.ordem] || compararTreinos);
 
   // "Carregar treinos": grava como locais os treinos do arquivo escolhido (adicionando ou substituindo os atuais).
   const concluirCarga = async (carga, substituir) => {
@@ -247,8 +258,10 @@ export default function Lista() {
             titulo="Ordenar por"
             valor={preferencias.ordem}
             opcoes={[
-              { valor: "nome", rotulo: "Nome" },
-              { valor: "duracao", rotulo: "Duração total" },
+              { valor: "nome", rotulo: "Nome (A → Z)" },
+              { valor: "nome-desc", rotulo: "Nome (Z → A)" },
+              { valor: "duracao", rotulo: "Duração (menor → maior)" },
+              { valor: "duracao-desc", rotulo: "Duração (maior → menor)" },
             ]}
             onEscolher={(ordem) => mudarPreferencia({ ordem })}
           />
@@ -305,15 +318,12 @@ export default function Lista() {
                 <GraficoTreino etapas={t.etapas} />
               </Link>
               <div className="cartao-acoes">
-                {/* treino de arquivo: o lápis abre em "modo cópia" (ver ou alterar; ao salvar vira um treino novo) */}
-                <Link
-                  className="btn-icone"
-                  para={`/editar/${encodeURIComponent(t.id)}`}
-                  aria-label={t.somenteLeitura ? `Ver ou editar ${t.nome}` : `Editar ${t.nome}`}
-                  title={t.somenteLeitura ? "Ver ou editar (ao salvar, vira um treino novo)" : undefined}
-                >
-                  <Lapis />
-                </Link>
+                {/* treino do site não se edita: só se duplica */}
+                {!t.somenteLeitura && (
+                  <Link className="btn-icone" para={`/editar/${encodeURIComponent(t.id)}`} aria-label={`Editar ${t.nome}`}>
+                    <Lapis />
+                  </Link>
+                )}
                 <button type="button" className="btn-icone" disabled={ocupado || offline} onClick={() => duplicar(t)} aria-label={`Duplicar ${t.nome}`}>
                   <Copiar />
                 </button>

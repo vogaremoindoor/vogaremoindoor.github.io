@@ -67,3 +67,13 @@ export function Link({ para, onClick, children, ...resto }) {
     </a>
   );
 }
+
+/** Troca a rota sem criar uma entrada no histórico (o "voltar" do navegador não volta para ela). */
+export function substituir(caminho) {
+  try {
+    history.replaceState(null, "", `#${caminho}`);
+  } catch {
+    /* sem acesso ao endereço: a rota em memória já basta */
+  }
+  definir(dividir(caminho));
+}
