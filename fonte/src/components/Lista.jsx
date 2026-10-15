@@ -117,8 +117,8 @@ export default function Lista() {
         </Link>
         {/* versão estática: gera o .zip com os treinos criados aqui, para publicar na pasta treinos do site */}
         {__MODO_LOCAL__ && (
-          <button type="button" className="btn btn-contorno btn-secundario" disabled={!locais.length} onClick={salvarTreinos} title="Gera um .zip com os treinos criados neste navegador, para enviar à pasta treinos do site">
-            <Baixar /> Salvar treinos
+          <button type="button" className="btn btn-contorno btn-secundario" disabled={!locais.length} onClick={salvarTreinos} title="Baixa um .zip com os treinos locais (criados neste navegador), para enviar à pasta treinos do site">
+            <Baixar /> Baixar treinos locais
           </button>
         )}
       </div>
@@ -145,7 +145,7 @@ export default function Lista() {
               </div>
             </li>
           ) : (
-            <li key={t.id} className="cartao">
+            <li key={t.id} className={t.somenteLeitura ? "cartao" : "cartao cartao-local"}>
               <Link className="cartao-corpo" para={`/treino/${encodeURIComponent(t.id)}`}>
                 <span className="cartao-play" aria-hidden="true">
                   <Play />
@@ -154,9 +154,9 @@ export default function Lista() {
                   <strong>{t.nome}</strong>
                   <small>
                     {resumo(t)}
-                    {t.somenteLeitura && (
-                      <span className="selo-arquivo" title="Treino da pasta treinos do site: somente leitura. Use Duplicar para criar uma cópia editável.">
-                        arquivo
+                    {!t.somenteLeitura && (
+                      <span className="selo-local" title="Treino salvo só neste navegador. Use Baixar treinos locais para publicá-lo no site.">
+                        local
                       </span>
                     )}
                   </small>
@@ -193,8 +193,8 @@ export default function Lista() {
 
       {__MODO_LOCAL__ && (
         <p className="rodape-teste">
-          Os treinos que você cria ficam salvos só neste navegador.
-          {treinos?.some((t) => t.somenteLeitura) && " Os marcados como “arquivo” vêm da pasta treinos do site e não podem ser editados aqui (use Duplicar). Para publicar os seus no site, use Salvar treinos."}
+          Os treinos que você cria ficam salvos só neste navegador e aparecem marcados como “local”.
+          {treinos?.some((t) => t.somenteLeitura) && " Os demais vêm da pasta treinos do site e não podem ser editados aqui (use Duplicar). Para publicar os marcados como “local” no site, use Baixar treinos locais."}
           {!api.persistente() && " O armazenamento está bloqueado aqui, então eles se perdem ao fechar a página."}
         </p>
       )}

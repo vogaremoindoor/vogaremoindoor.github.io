@@ -3,6 +3,7 @@
   --bg: #0e1a14;
   --bg-descanso: #1b1607;
   --card: #15251c;
+  --card-local: #1f3529;
   --borda: #2a4034;
   --texto: #ffffff;
   --suave: rgba(255, 255, 255, 0.72);
@@ -39,6 +40,7 @@
   --bg: #f5f7f4;
   --bg-descanso: #fff6dc;
   --card: #ffffff;
+  --card-local: #e8ece8;
   --borda: #cfdad2;
   --texto: #0f1a14;
   --suave: rgba(15, 26, 20, 0.72);
@@ -434,7 +436,7 @@ input[type="number"]::-webkit-inner-spin-button { display: none; }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } .contagem-num, .contagem-preparando { animation: none; } }
 
 /* treinos vindos de arquivos (pasta treinos) */
-.selo-arquivo { display: inline-block; margin-left: 10px; padding: 1px 9px; border: 1px solid var(--borda); border-radius: 999px; color: var(--suave); font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; vertical-align: middle; }
+.selo-arquivo, .selo-local { display: inline-block; margin-left: 10px; padding: 1px 9px; border: 1px solid var(--borda); border-radius: 999px; color: var(--suave); font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; vertical-align: middle; }
 .cartao-invalido { border-color: var(--perigo); }
 .cartao-invalido .cartao-corpo { cursor: default; }
 .cartao-invalido small { color: var(--perigo); white-space: normal; }
@@ -491,3 +493,7 @@ input[type="number"]::-webkit-inner-spin-button { display: none; }
   .marca-texto h1 { font-size: 52px; }
   .marca-texto p { font-size: 14px; }
 }
+
+/* treinos locais (criados neste navegador): fundo destacado e etiqueta "local" */
+.cartao.cartao-local { background: var(--card-local); }
+.selo-local { border-color: var(--verde); color: var(--verde); }
