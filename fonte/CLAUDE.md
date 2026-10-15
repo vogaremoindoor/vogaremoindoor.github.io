@@ -7,7 +7,7 @@ execução mostra contador regressivo, voga/DESCANSO, próxima etapa, anel de pr
 implementar mudanças visuais.
 
 ## Onde fica: pasta `fonte/` do repositório do site
-O código-fonte fica em `fonte/` do repositório **vogaremoindoor**; a raiz do repositório é o site publicado
+O código-fonte fica em `fonte/` do repositório **vogaremoindoor.github.io**; a raiz do repositório é o site publicado
 (GitHub Pages, branch `main`). **Nunca edite `assets/`, `index.html` ou `sw.js` da raiz à mão**: altere `fonte/`,
 gere o build e publique (ver "Publicar"). Entre 8 e 15/10/2026 várias mudanças foram feitas direto no JS
 minificado; todas foram trazidas de volta para `fonte/` (um commit "fonte: …" para cada uma) e o build deste
@@ -65,7 +65,7 @@ npm run publicar:pages .. [--simular]   # copia dist-pages/ para a raiz do repos
   botões lado a lado embaixo). Tela de execução é tela cheia sem rolagem; a de início rola (gráfico grande + etapas).
 
 ## Publicar no GitHub Pages
-Repositório: **https://github.com/vogaremoindoor/vogaremoindoor** (branch `main`, site na **raiz**, código em `fonte/`).
+Repositório: **https://github.com/vogaremoindoor/vogaremoindoor.github.io** (branch `main`, site na **raiz**, código em `fonte/`).
 Os treinos do site ficam em `treinos/` da raiz; `fonte/treinos/` tem uma cópia (para o build local mostrar os mesmos).
 1. Em `fonte/`: `npm ci` (a primeira vez), `npm test` e `npm run build:pages`
 2. `npm run publicar:pages .. --simular` e depois sem `--simular` (o normal é mudar só `assets/index-*`, `index.html`
