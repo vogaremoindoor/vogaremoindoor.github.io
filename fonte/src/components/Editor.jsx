@@ -4,7 +4,7 @@ import * as api from "../api.js";
 import { navegar, Link } from "../router.jsx";
 import { BotaoTema } from "../tema.jsx";
 import { Baixo, Cima, Fechar, Mais, Voltar } from "./Icones.jsx";
-import Passos, { teclasDePasso } from "./Passos.jsx";
+import { CampoNumero } from "./Passos.jsx";
 
 let contador = 0;
 const chave = () => ++contador;
@@ -31,16 +31,6 @@ const comChaves = (lista) =>
 const canonico = (etapas) => JSON.stringify(normalizarEtapas(etapas));
 const limpar = (lista) =>
   lista.map(({ chave: _c, etapas, ...resto }) => (etapas ? { ...resto, etapas: limpar(etapas) } : resto));
-
-/** Caixa numérica com os botões + e − ao lado (e ↑ ↓ no teclado). `passo(delta)` aplica o ajuste. */
-function CampoNumero({ children, rotuloMais, rotuloMenos, onMais, onMenos, podeMais, podeMenos }) {
-  return (
-    <span className="campo-numero">
-      {children(teclasDePasso(onMais, onMenos, podeMais, podeMenos))}
-      <Passos rotuloMais={rotuloMais} rotuloMenos={rotuloMenos} onMais={onMais} onMenos={onMenos} podeMais={podeMais} podeMenos={podeMenos} />
-    </span>
-  );
-}
 
 function CampoTempo({ valor, onChange, rotulo }) {
   const min = Math.floor(valor / 60);

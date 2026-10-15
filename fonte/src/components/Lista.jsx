@@ -10,6 +10,7 @@ import { criarZip } from "../zip.js";
 import GraficoTreino from "./GraficoTreino.jsx";
 import Logo from "./Logo.jsx";
 import { BotaoTema } from "../tema.jsx";
+import VogaConfig from "./Config.jsx";
 import VogaInfo from "./Info.jsx";
 import MenuLista from "./MenuLista.jsx";
 import Confirmacao from "./Confirmacao.jsx";
@@ -217,6 +218,7 @@ export default function Lista() {
         </div>
         <div className="cabecalho-botoes">
           <VogaInfo />
+          <VogaConfig />
           <BotaoTema />
         </div>
       </header>

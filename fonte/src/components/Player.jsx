@@ -14,6 +14,7 @@ import {
   sinaisTreino,
   sinalTroca,
 } from "../audio.js";
+import { contagemAtual } from "../config.js";
 import { useWakeLock } from "../useWakeLock.js";
 import { BotaoTema } from "../tema.jsx";
 import Confirmacao from "./Confirmacao.jsx";
@@ -23,10 +24,10 @@ import { GraficoGrande } from "./GraficoTreino.jsx";
 import { Pause, Play, ProximaEtapa, TelaCheia } from "./Icones.jsx";
 
 const CIRCUNFERENCIA = 2 * Math.PI * 140;
-const CONTAGEM_S = 5; // contagem regressiva antes de começar o treino
 const EXTRA_MS = 30_000; // botão "+30 s"
 
 export default function Player({ treino, onSair }) {
+  const CONTAGEM_S = contagemAtual(); // contagem regressiva antes de começar o treino (configurável)
   const passos = useMemo(() => achatar(treino.etapas), [treino]);
   const total = useMemo(() => passos.reduce((s, p) => s + p.duracao_s, 0), [passos]);
 

@@ -90,3 +90,13 @@ export const teclasDePasso = (onMais, onMenos, podeMais, podeMenos) => (e) => {
     if (podeMenos) onMenos();
   }
 };
+
+/** Caixa numérica com os botões + e − ao lado (e ↑ ↓ no teclado). `passo(delta)` aplica o ajuste. */
+export function CampoNumero({ children, rotuloMais, rotuloMenos, onMais, onMenos, podeMais, podeMenos }) {
+  return (
+    <span className="campo-numero">
+      {children(teclasDePasso(onMais, onMenos, podeMais, podeMenos))}
+      <Passos rotuloMais={rotuloMais} rotuloMenos={rotuloMenos} onMais={onMais} onMenos={onMenos} podeMais={podeMais} podeMenos={podeMenos} />
+    </span>
+  );
+}
