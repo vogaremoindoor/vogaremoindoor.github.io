@@ -543,3 +543,5 @@ input[type="number"]::-webkit-inner-spin-button { display: none; }
 .tags-dica { color: var(--suave); font-size: 13px; }
 .tags-erro { color: var(--perigo); font-size: 13px; font-weight: 600; }
 .cartao-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; min-width: 0; }
+.menu-caixa { max-height: min(70dvh, 520px); overflow-y: auto; }
+.menu-titulo-2 { margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--borda); }

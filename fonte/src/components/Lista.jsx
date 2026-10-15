@@ -25,10 +25,11 @@ const lerPreferencias = () => {
     const p = JSON.parse(localStorage.getItem(CHAVE_LISTA) || "{}");
     return {
       filtro: ["todos", "locais", "site"].includes(p.filtro) ? p.filtro : "todos",
+      tag: typeof p.tag === "string" ? p.tag : "",
       ordem: ["nome", "nome-desc", "duracao", "duracao-desc"].includes(p.ordem) ? p.ordem : "nome",
     };
   } catch {
-    return { filtro: "todos", ordem: "nome" };
+    return { filtro: "todos", tag: "", ordem: "nome" };
   }
 };
 const duracaoTreino = (t) => {
@@ -142,8 +143,13 @@ export default function Lista() {
     }
   };
 
+  // filtro por tag: as opções são as tags de todos os treinos; a tag lembrada só vale se ainda existir
+  const chaveTag = (t) => t.toLocaleLowerCase("pt-BR");
+  const todasAsTags = normalizarTags((treinos || []).flatMap((t) => (t.invalido ? [] : normalizarTags(t.tags)))).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  const tagAtiva = todasAsTags.find((t) => chaveTag(t) === chaveTag(preferencias.tag || "")) || "";
   const visiveis = treinos
-    ?.filter((t) => preferencias.filtro === "todos" || (preferencias.filtro === "locais" ? !t.somenteLeitura : t.somenteLeitura))
+    ?.filter((t) => !tagAtiva || normalizarTags(t.tags).some((x) => chaveTag(x) === chaveTag(tagAtiva)))
+    .filter((t) => preferencias.filtro === "todos" || (preferencias.filtro === "locais" ? !t.somenteLeitura : t.somenteLeitura))
     .sort(ORDENACOES[preferencias.ordem] || compararTreinos);
 
   // "Carregar treinos": grava como locais os treinos do arquivo escolhido (adicionando ou substituindo os atuais).
@@ -244,7 +250,11 @@ export default function Lista() {
             rotulo="Filtrar"
             titulo="Mostrar"
             valor={preferencias.filtro}
-            ativo={preferencias.filtro !== "todos"}
+            ativo={preferencias.filtro !== "todos" || !!tagAtiva}
+            titulo2="Tag"
+            valor2={tagAtiva}
+            opcoes2={[{ valor: "", rotulo: "Todas as tags" }, ...todasAsTags.map((t) => ({ valor: t, rotulo: t }))]}
+            onEscolher2={(tag) => mudarPreferencia({ tag })}
             opcoes={[
               { valor: "todos", rotulo: "Todos os treinos" },
               { valor: "locais", rotulo: "Só os locais" },
@@ -277,7 +287,11 @@ export default function Lista() {
       )}
       {treinos?.length > 0 && visiveis.length === 0 && (
         <p className="vazio">
-          {preferencias.filtro === "locais" ? "Nenhum treino local. Crie um em “Novo treino” ou use “Carregar treinos”." : "Nenhum treino do site."}
+          {tagAtiva
+            ? `Nenhum treino ${preferencias.filtro === "locais" ? "local " : preferencias.filtro === "site" ? "do site " : ""}com a tag “${tagAtiva}”.`
+            : preferencias.filtro === "locais"
+              ? "Nenhum treino local. Crie um em “Novo treino” ou use “Carregar treinos”."
+              : "Nenhum treino do site."}
         </p>
       )}
 
