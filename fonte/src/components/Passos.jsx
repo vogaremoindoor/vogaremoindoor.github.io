@@ -33,7 +33,11 @@ function BotaoPasso({ sinal, rotulo, onPasso, desativado, texto }) {
 
   const apertar = (e) => {
     if (desativado || (e.pointerType === "mouse" && e.button !== 0)) return;
-    e.currentTarget.setPointerCapture?.(e.pointerId); // soltar fora do botão também para a repetição
+    try {
+      e.currentTarget.setPointerCapture?.(e.pointerId); // soltar fora do botão também para a repetição
+    } catch {
+      /* no iPhone pode falhar (botão recém-criado): segue sem a captura */
+    }
     ignorarClique.current = true; // o "click" que vem depois do soltar não pode contar de novo
     setPressionado(true);
     acao.current();
@@ -42,7 +46,8 @@ function BotaoPasso({ sinal, rotulo, onPasso, desativado, texto }) {
   };
   const soltar = () => {
     parar();
-    setTimeout(() => (ignorarClique.current = false), 0);
+    // guarda quando soltou: o "click" que vem logo depois (até 1 s) é o mesmo toque e não conta de novo
+    if (ignorarClique.current === true) ignorarClique.current = performance.now();
   };
 
   return (
@@ -57,11 +62,13 @@ function BotaoPasso({ sinal, rotulo, onPasso, desativado, texto }) {
       onPointerCancel={soltar}
       onLostPointerCapture={soltar}
       onContextMenu={(e) => e.preventDefault()} // toque longo no celular não abre o menu do navegador
-      onClick={(e) => {
-        // o "click" depois de soltar o dedo/mouse não conta (o passo já foi dado ao apertar); só o do teclado
-        // (Enter/Espaço, com detail 0) dá um passo por vez
+      onClick={() => {
+        // o "click" do mesmo toque não conta (o passo já foi dado ao apertar); um click sem toque antes
+        // (teclado: Enter/Espaço, ou leitor de tela) dá um passo por vez
+        const toque = ignorarClique.current;
         ignorarClique.current = false;
-        if (e.detail === 0 && !desativado) acao.current();
+        if (toque === true || (typeof toque === "number" && performance.now() - toque < 1000)) return;
+        if (!desativado) acao.current();
       }}
     >
       {texto || (sinal === "+" ? <Mais aria-hidden="true" /> : <Menos aria-hidden="true" />)}
