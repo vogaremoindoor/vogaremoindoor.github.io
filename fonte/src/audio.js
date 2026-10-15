@@ -121,6 +121,9 @@ const buffers = new Map(); // chave -> AudioBuffer ("voga:20", "5seg", "vai", "r
 const GANHO_VOZ = 1;
 const FOLGA_FALA_MS = 250; // pausa entre o fim de "Voga N" e o "5 segundos"
 const INICIO_FALA_MS = 150; // "Voga N" de etapa curta: logo depois que a etapa começa
+// "Prepara… Vai!": começa 1 s antes da remada (no lugar do último bipe curto), com o "Vai!" caindo na largada
+const PREPARA_VAI = "prepara-vai";
+const PREPARA_VAI_ANTES_MS = 1000;
 
 export const chaveVoga = (n) => `voga:${n}`;
 export const temVoz = (chave) => buffers.has(chave);
@@ -135,6 +138,7 @@ const chavesDoTreino = (passos) => {
   const chaves = new Set(["5seg", "vai"]);
   for (const p of passos) if (p.tipo === "remada") chaves.add(chaveVoga(p.voga));
   if (passos.some((p) => p.tipo === "descanso")) chaves.add("respira");
+  if (passos.some((p) => p.tipo === "remada")) chaves.add(PREPARA_VAI);
   return [...chaves];
 };
 // "voga:24" -> audio/voga-24.mp3 (relativo à página: funciona na raiz e em subpasta, como no github.io/repo/)
@@ -281,20 +285,25 @@ export const sinalTroca = (t, tipo) => {
 /**
  * Contagem antes do treino: um bipe por segundo a partir de `t0` e o bipe de largada ao zerar.
  * `primeiroPasso` é o 1º passo do treino (ou só o seu tipo). Se for remada: "Voga N" junto do 1º
- * bipe da contagem e "Vai!" na largada; se for descanso, "Respira" na largada.
+ * bipe da contagem e "Prepara… Vai!" (ou só "Vai!") na largada; se for descanso, "Respira" na largada.
  */
 export function sinaisContagem(t0, segundos, primeiroPasso) {
   const tipo = typeof primeiroPasso === "string" ? primeiroPasso : primeiroPasso?.tipo;
-  const comVai = temFalaDoInicio(tipo);
+  const preparaVai = tipo === "remada" && temVoz(PREPARA_VAI);
+  const comVai = tipo === "remada" ? preparaVai || temVoz("vai") : temFalaDoInicio(tipo);
   const sinais = [];
-  for (let k = 0; k < segundos; k++) sinais.push(bipeCurto(t0 + k * 1000));
+  for (let k = 0; k < segundos; k++) {
+    if (!(preparaVai && k === segundos - 1)) sinais.push(bipeCurto(t0 + k * 1000)); // o último dá lugar ao "Prepara"
+  }
   sinais.push(bipeLongo(t0 + segundos * 1000, tipo, comVai));
   if (tipo === "remada") {
     const chave = chaveVoga(primeiroPasso.voga);
-    if (typeof primeiroPasso !== "string" && temVoz(chave) && duracaoVozMs(chave) < segundos * 1000 - 300) {
+    const folga = preparaVai ? PREPARA_VAI_ANTES_MS : 0;
+    if (typeof primeiroPasso !== "string" && temVoz(chave) && duracaoVozMs(chave) < segundos * 1000 - 300 - folga) {
       sinais.push(fala(t0, chave));
     }
-    if (comVai) sinais.push(fala(t0 + segundos * 1000, "vai"));
+    if (preparaVai) sinais.push(fala(t0 + segundos * 1000 - PREPARA_VAI_ANTES_MS, PREPARA_VAI));
+    else if (comVai) sinais.push(fala(t0 + segundos * 1000, "vai"));
   } else if (comVai) sinais.push(fala(t0 + segundos * 1000, "respira"));
   return sinais;
 }
@@ -304,8 +313,9 @@ export function sinaisContagem(t0, segundos, primeiroPasso) {
  *  - "Voga N" termina FOLGA antes do "5 segundos";
  *  - "5 segundos" quando faltam 5 s, só se a etapa atual dura mais de 5 s;
  *  - etapa curta: "Voga N" logo no começo, se couber; o "5 segundos" só entra se não bater com a voga.
+ * `reservaFim`: tempo reservado no fim da etapa (o "Prepara… Vai!"), que a voga de etapa curta não pode invadir.
  */
-function falasAntesDaRemada(proximo, inicio, fim, total) {
+function falasAntesDaRemada(proximo, inicio, fim, total, reservaFim = 0) {
   const chave = chaveVoga(proximo.voga);
   const dV = temVoz(chave) ? duracaoVozMs(chave) : 0;
   const falas = [];
@@ -315,7 +325,7 @@ function falasAntesDaRemada(proximo, inicio, fim, total) {
     if (dV && tV >= inicio + INICIO_FALA_MS) falas.push(fala(tV, chave), fala(t5, "5seg"));
     else if (dV && inicio + INICIO_FALA_MS + dV <= fim - 3200) falas.push(fala(inicio + INICIO_FALA_MS, chave));
     else falas.push(fala(t5, "5seg"));
-  } else if (dV && inicio + INICIO_FALA_MS + dV <= fim - 100) {
+  } else if (dV && inicio + INICIO_FALA_MS + dV <= fim - 100 - reservaFim) {
     falas.push(fala(inicio + INICIO_FALA_MS, chave));
   }
   return falas;
@@ -335,17 +345,24 @@ export function sinaisTreino(passos, indice, fimDoPasso, totalAtualMs = passos[i
   let fim = fimDoPasso;
   for (let i = indice; i < passos.length; i++) {
     const total = i === indice ? totalAtualMs : passos[i].duracao_s * 1000;
+    const proximo = passos[i + 1];
     if (i > indice) fim += total;
     if (total >= 5000) {
-      for (const s of [3, 2, 1]) sinais.push(bipeCurto(fim - s * 1000));
+      for (const s of [3, 2, 1]) {
+        // antes de uma remada, o último bipe curto dá lugar ao "Prepara… Vai!"
+        if (!(proximo && proximo.tipo === "remada" && temVoz(PREPARA_VAI) && total >= 1500 && s === 1)) sinais.push(bipeCurto(fim - s * 1000));
+      }
     }
-    const proximo = passos[i + 1];
     if (proximo) {
-      const comVoz = temFalaDoInicio(proximo.tipo);
+      const preparaVai = proximo.tipo === "remada" && temVoz(PREPARA_VAI) && total >= 1500;
+      const comVoz = proximo.tipo === "remada" ? preparaVai || temVoz("vai") : temFalaDoInicio(proximo.tipo);
       const respira = passos[i].tipo === "descanso" && temVoz("respira") ? duracaoVozMs("respira") + INICIO_FALA_MS : 0;
       sinais.push(bipeLongo(fim, proximo.tipo, comVoz));
-      if (proximo.tipo === "remada") sinais.push(...falasAntesDaRemada(proximo, fim - total + respira, fim, total - respira));
-      if (comVoz) sinais.push(fala(fim, falaDoInicio(proximo.tipo)));
+      if (proximo.tipo === "remada") {
+        sinais.push(...falasAntesDaRemada(proximo, fim - total + respira, fim, total - respira, preparaVai ? PREPARA_VAI_ANTES_MS : 0));
+      }
+      if (preparaVai) sinais.push(fala(fim - PREPARA_VAI_ANTES_MS, PREPARA_VAI));
+      else if (comVoz) sinais.push(fala(fim, falaDoInicio(proximo.tipo)));
     } else {
       sinais.push({
         t: fim,

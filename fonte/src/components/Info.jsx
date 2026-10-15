@@ -73,7 +73,7 @@ export default function VogaInfo() {
                   Os ícones à direita dos botões <b>filtram</b> a lista (todos, só os locais ou só os do site) e <b>ordenam</b> por nome ou pela duração total, em ordem crescente ou decrescente.
                 </li>
               </ul>
-              <p className="info-versao">Versão 1.8.1 · 14/10/2026</p>
+              <p className="info-versao">Versão 1.9.0 · 14/10/2026</p>
               {!api.persistente() && <p className="aviso">O armazenamento está bloqueado neste navegador, então os treinos locais se perdem ao fechar a página.</p>}
             </div>
             <div className="modal-botoes">

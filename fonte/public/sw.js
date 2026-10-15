@@ -9,12 +9,13 @@ const ESCOPO = self.registration.scope; // sempre termina com "/"
 const ASSETS = [/*__ASSETS__*/];
 const BASE = [ESCOPO, `${ESCOPO}manifest.webmanifest`, `${ESCOPO}icons/icon.svg`, ...ASSETS.map((a) => `${ESCOPO}${a}`)];
 const CAMINHO_API = new URL("api/", ESCOPO).pathname;
-// Falas do treino (audio/voga-12.mp3 ... voga-46.mp3, 5seg.mp3, vai.mp3, respira.mp3): guardadas para funcionar offline.
+// Falas do treino (audio/voga-12.mp3 ... voga-46.mp3, 5seg.mp3, vai.mp3, respira.mp3, prepara-vai.mp3): guardadas para funcionar offline.
 const FALAS = [
   ...Array.from({ length: 35 }, (_, i) => `${ESCOPO}audio/voga-${i + 12}.mp3`),
   `${ESCOPO}audio/5seg.mp3`,
   `${ESCOPO}audio/vai.mp3`,
   `${ESCOPO}audio/respira.mp3`,
+  `${ESCOPO}audio/prepara-vai.mp3`,
 ];
 
 // Guarda treinos/index.json e os arquivos de treino que ele lista (de melhor esforço), para a lista abrir offline
