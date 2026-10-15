@@ -57,12 +57,11 @@ function BotaoPasso({ sinal, rotulo, onPasso, desativado }) {
       onPointerCancel={soltar}
       onLostPointerCapture={soltar}
       onContextMenu={(e) => e.preventDefault()} // toque longo no celular não abre o menu do navegador
-      onClick={() => {
-        if (ignorarClique.current) {
-          ignorarClique.current = false;
-          return;
-        }
-        if (!desativado) acao.current(); // teclado (Enter/Espaço): um passo por vez
+      onClick={(e) => {
+        // o "click" depois de soltar o dedo/mouse não conta (o passo já foi dado ao apertar); só o do teclado
+        // (Enter/Espaço, com detail 0) dá um passo por vez
+        ignorarClique.current = false;
+        if (e.detail === 0 && !desativado) acao.current();
       }}
     >
       {sinal === "+" ? <Mais aria-hidden="true" /> : <Menos aria-hidden="true" />}
