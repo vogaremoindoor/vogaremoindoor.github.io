@@ -2,11 +2,11 @@
 // (por exemplo https://usuario.github.io/voga/), pois tudo é relativo ao escopo.
 // A versão e a lista de assets abaixo são preenchidas no build (vite.config.js). O cache do app muda a cada versão;
 // o das falas (audio/) é separado e permanece, para não baixar tudo de novo a cada atualização.
-const VERSAO = "mv9jslpe";
+const VERSAO = "mvpyfgl5";
 const CACHE = `voga-app-${VERSAO}`;
 const CACHE_FALAS = "voga-falas-v4";
 const ESCOPO = self.registration.scope; // sempre termina com "/"
-const ASSETS = ["assets/index-BDNR1ojP.js", "assets/index-DVI2-64s.css", "assets/react-C8w-UNLI.js"];
+const ASSETS = ["assets/index-CvI25xun.js", "assets/index-l4Vt5AKe.css", "assets/react-C8w-UNLI.js"];
 const BASE = [ESCOPO, `${ESCOPO}manifest.webmanifest`, `${ESCOPO}icons/icon.svg`, ...ASSETS.map((a) => `${ESCOPO}${a}`)];
 const CAMINHO_API = new URL("api/", ESCOPO).pathname;
 // Falas do treino da voz padrão (audio/Faber/voga-12.mp3 ... voga-46.mp3, 5seg.mp3, vai.mp3, respira.mp3,
