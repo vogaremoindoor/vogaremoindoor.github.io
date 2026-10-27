@@ -173,13 +173,34 @@ input[type="number"] { text-align: center; padding: 0 6px; width: 72px; -moz-app
 input[type="number"]::-webkit-inner-spin-button { display: none; }
 
 .etapas ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0; }
-.etapa { background: var(--card); border: 1px solid var(--borda); border-left: 6px solid var(--verde); border-radius: 16px; padding: 10px 12px 14px 16px; display: flex; flex-direction: column; gap: 10px; }
-.etapa-descanso { border-left-color: var(--ambar); }
-.etapa-repeticao { border-left-color: var(--azul); }
-.etapa-cabeca { display: flex; align-items: center; justify-content: space-between; }
-.etapa-tipo { font-weight: 700; font-size: 17px; letter-spacing: 0.06em; text-transform: uppercase; }
+.etapa { --cor-etapa: var(--verde); background: var(--card); border: 1px solid var(--borda); border-left: 5px solid var(--cor-etapa); border-radius: 14px; padding: 4px 8px 10px 12px; display: flex; flex-direction: column; gap: 4px; container-type: inline-size; }
+.etapa-descanso { --cor-etapa: var(--ambar); }
+.etapa-repeticao { --cor-etapa: var(--azul); }
+.etapa-cabeca { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.etapa-tipo { font-weight: 700; font-size: 14px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--cor-etapa); }
 .etapa-controles { display: flex; }
-.etapa-campos { display: flex; align-items: flex-end; gap: 20px; flex-wrap: wrap; }
+.etapa-controles .btn-icone { width: 34px; height: 38px; }
+/* Tempo | Voga numa linha: três colunas, a barra fica no meio do cartão; o tempo encosta nela pela esquerda e a
+   voga pela direita. Descanso só tem o tempo, no mesmo lugar do tempo das remadas. */
+.etapa-campos { display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; column-gap: 12px; }
+.etapa-campos .campo-tempo { grid-column: 1; justify-self: end; }
+.etapa-campos .campo-voga { grid-column: 3; justify-self: start; }
+.etapa-campos .dica-erro { grid-column: 1 / -1; justify-self: center; }
+.etapa-separador { grid-column: 2; width: 2px; height: 44px; margin-bottom: 4px; border-radius: 1px; background: var(--borda); }
+/* cartão estreito demais para a linha (celular pequeno, dentro de repetição): tempo e voga um embaixo do outro */
+@container (max-width: 270px) {
+  .etapa-campos { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+  .etapa-separador { display: none; }
+}
+.caixa-rotulada { display: flex; flex-direction: column; gap: 2px; }
+.caixa-rotulada > span { color: var(--suave); font-size: 13px; font-weight: 600; letter-spacing: 0.04em; padding-left: 2px; }
+.campo-tempo, .campo-voga { display: flex; align-items: flex-end; gap: 4px; }
+.campo-tempo .passos, .campo-voga .passos { height: 52px; }
+input.caixa-tempo { width: 72px; min-height: 52px; padding: 0 4px; text-align: center; font-family: var(--fonte-num); font-weight: 600; font-size: 26px; font-variant-numeric: tabular-nums; }
+.campo-voga input[type="number"] { width: 56px; font-family: var(--fonte-num); font-size: 26px; }
+.campo-vezes { display: inline-flex; align-items: center; gap: 6px; color: var(--suave); font-weight: 600; }
+.campo-vezes .campo-numero { height: 44px; }
+.campo-vezes input[type="number"] { width: 48px; min-height: 44px; }
 /* caixa numérica + botões + (em cima) e − (embaixo), do tamanho da caixa (52 px) */
 .campo-numero { display: inline-flex; align-items: stretch; gap: 5px; height: 52px; }
 .passos { display: flex; flex-direction: column; gap: 2px; width: 30px; }
@@ -193,14 +214,10 @@ input[type="number"]::-webkit-inner-spin-button { display: none; }
 .passo:hover:not(:disabled) { background: var(--hover); border-color: var(--contorno); }
 .passo.pressionado, .passo.pressionado:hover { background: var(--verde); border-color: var(--verde); color: var(--sobre-acento); box-shadow: 0 0 0 3px color-mix(in srgb, var(--verde) 35%, transparent); }
 .passo:disabled { opacity: 0.3; cursor: default; }
-.campo-tempo { border: 0; margin: 0; padding: 0; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.campo-tempo legend { width: 100%; padding: 0; margin-bottom: 6px; }
-.campo-voga { display: inline-flex; align-items: center; gap: 10px; }
 .campo-voga input[aria-invalid="true"] { border-color: var(--perigo); }
 .legenda-total { color: var(--suave); font-size: 0.8em; }
 .dica-erro { color: var(--perigo); font-size: 14px; font-weight: 600; }
-.campo-voga > span { white-space: nowrap; }
-.etapas-aninhadas { margin-top: 4px; padding: 12px; border-radius: 12px; background: var(--aninhado); }
+.etapas-aninhadas { margin-top: 2px; padding: 0 8px 8px; border-radius: 12px; background: var(--aninhado); }
 /* Ponto de inserção entre etapas: faixa de 24 px que mostra uma linha pontilhada e o "+" ao passar o mouse. */
 .inserir { position: relative; height: 24px; display: flex; align-items: center; justify-content: center; }
 .inserir::before { content: ""; position: absolute; left: 12px; right: 12px; top: 50%; border-top: 2px dashed var(--verde); opacity: 0; transition: opacity 0.12s; pointer-events: none; }
@@ -786,12 +803,10 @@ input[type="number"]::-webkit-inner-spin-button { display: none; }
   flex: none;
 }
 
-/* botões ±30 s ao lado dos segundos (editor) */
+/* botões ±30 s e ±1 s ao lado da caixa do tempo (editor) */
+.passos-seg .passo { font-family: var(--fonte-num); font-size: 14px; font-weight: 700; line-height: 1; letter-spacing: 0.01em; }
 .passos-30 { width: 40px; }
-.passos-30 .passo { font-family: var(--fonte-num); font-size: 14px; font-weight: 700; line-height: 1; letter-spacing: 0.01em; }
-.etapas-aninhadas .campo-tempo { gap: 4px; }
-.etapas-aninhadas .campo-tempo input[type="number"] { width: 54px; }
-.etapas-aninhadas .passos-30 { width: 34px; }
+.passos-1 { width: 34px; }
 
 /* ---------- escolha da voz das falas (configurações) ---------- */
 .vozes { display: flex; flex-direction: column; gap: 8px; }

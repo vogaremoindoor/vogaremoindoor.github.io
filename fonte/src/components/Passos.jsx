@@ -86,12 +86,13 @@ export default function Passos({ rotuloMais, rotuloMenos, onMais, onMenos, podeM
   );
 }
 
-/** Par de botões +30 e −30 (segundos), ao lado da caixa dos segundos no editor. */
-export function Passos30({ onMais, onMenos, podeMais, podeMenos }) {
+/** Par de botões +N e −N segundos (no editor: ±30 e ±1 ao lado da caixa do tempo). */
+export function PassosSegundos({ n, onMais, onMenos, podeMais, podeMenos }) {
+  const unidade = n === 1 ? "segundo" : "segundos";
   return (
-    <span className="passos passos-30">
-      <BotaoPasso sinal="+" texto="+30" rotulo="Aumentar 30 segundos" onPasso={onMais} desativado={!podeMais} />
-      <BotaoPasso sinal="-" texto="−30" rotulo="Diminuir 30 segundos" onPasso={onMenos} desativado={!podeMenos} />
+    <span className={`passos passos-seg passos-${n}`}>
+      <BotaoPasso sinal="+" texto={`+${n}`} rotulo={`Aumentar ${n} ${unidade}`} onPasso={onMais} desativado={!podeMais} />
+      <BotaoPasso sinal="-" texto={`−${n}`} rotulo={`Diminuir ${n} ${unidade}`} onPasso={onMenos} desativado={!podeMenos} />
     </span>
   );
 }

@@ -4,7 +4,7 @@ import * as api from "../api.js";
 import { navegar, Link } from "../router.jsx";
 import { BotaoTema } from "../tema.jsx";
 import { Baixo, Cima, Fechar, Mais, Voltar } from "./Icones.jsx";
-import { CampoNumero, Passos30 } from "./Passos.jsx";
+import Passos, { CampoNumero, PassosSegundos, teclasDePasso } from "./Passos.jsx";
 
 let contador = 0;
 const chave = () => ++contador;
@@ -25,32 +25,61 @@ const canonico = (etapas) => JSON.stringify(normalizarEtapas(etapas));
 const limpar = (lista) =>
   lista.map(({ chave: _c, etapas, ...resto }) => (etapas ? { ...resto, etapas: limpar(etapas) } : resto));
 
+const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
+// Texto digitado na caixa do tempo → segundos (ou null se não der para ler). Com separador ("1:30", "1.30",
+// "1,30") é minutos e segundos; só dígitos, como num micro-ondas, os dois últimos são os segundos:
+// "130" = 1:30, "45" = 0:45, "1000" = 10:00 (e "90" = 1:30).
+function lerTempo(texto) {
+  const t = String(texto).trim();
+  let m = t.match(/^(\d{0,4})[:.,](\d{0,2})$/);
+  if (m) return Number(m[1] || 0) * 60 + Number(m[2] || 0);
+  m = t.match(/^\d{1,6}$/);
+  if (m) return Math.floor(Number(t) / 100) * 60 + (Number(t) % 100);
+  return null;
+}
+
+/** Caixa única do tempo (m:ss) com o rótulo em cima e os botões ±30 e ±1 segundo ao lado. */
 function CampoTempo({ valor, onChange, rotulo }) {
-  const min = Math.floor(valor / 60);
-  const seg = valor % 60;
-  const num = (v, max) => Math.min(max, Math.max(0, parseInt(v, 10) || 0));
+  const [rascunho, setRascunho] = useState(null); // o que está sendo digitado (null = mostra o valor)
   // Os botões mexem no tempo TOTAL: 59 s + 1 vira 1:00 e 1:00 − 1 vira 0:59. O tempo fica entre 1 s e 24 h.
-  const somar = (delta) => onChange(Math.min(MAX_DURACAO_S, Math.max(0, valor + delta)));
+  const somar = (delta) => {
+    setRascunho(null);
+    onChange(Math.min(MAX_DURACAO_S, Math.max(0, valor + delta)));
+  };
   const pode = (delta) => valor + delta >= 0 && valor + delta <= MAX_DURACAO_S;
+  const digitar = (texto) => {
+    setRascunho(texto);
+    const s = lerTempo(texto);
+    if (s !== null) onChange(Math.min(MAX_DURACAO_S, s));
+  };
+  // ↑ ↓ = 1 segundo; com Shift, 30 segundos
+  const teclas = (e) => {
+    if (e.key === "Enter") e.currentTarget.blur();
+    if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+    e.preventDefault();
+    const delta = (e.key === "ArrowUp" ? 1 : -1) * (e.shiftKey ? 30 : 1);
+    if (pode(delta)) somar(delta);
+  };
   return (
-    <fieldset className="campo-tempo">
-      <legend>{rotulo}</legend>
-      <CampoNumero rotuloMais="Aumentar 1 minuto" rotuloMenos="Diminuir 1 minuto" onMais={() => somar(60)} onMenos={() => somar(-60)} podeMais={pode(60)} podeMenos={pode(-60)}>
-        {(teclas) => <input type="number" inputMode="numeric" min="0" max="999" value={min} aria-label={`${rotulo}: minutos`} onChange={(e) => onChange(num(e.target.value, 999) * 60 + seg)} onKeyDown={teclas} onFocus={(e) => e.target.select()} />}
-      </CampoNumero>
-      <span aria-hidden="true">:</span>
-      <CampoNumero
-        rotuloMais="Aumentar 1 segundo"
-        rotuloMenos="Diminuir 1 segundo"
-        onMais={() => somar(1)}
-        onMenos={() => somar(-1)}
-        podeMais={pode(1)}
-        podeMenos={pode(-1)}
-        extra={<Passos30 onMais={() => somar(30)} onMenos={() => somar(-30)} podeMais={pode(30)} podeMenos={pode(-30)} />}
-      >
-        {(teclas) => <input type="number" inputMode="numeric" min="0" max="59" value={String(seg).padStart(2, "0")} aria-label={`${rotulo}: segundos`} onChange={(e) => onChange(min * 60 + num(e.target.value, 59))} onKeyDown={teclas} onFocus={(e) => e.target.select()} />}
-      </CampoNumero>
-    </fieldset>
+    <div className="campo-tempo">
+      <label className="caixa-rotulada">
+        <span>{rotulo}</span>
+        <input
+          type="text"
+          inputMode="numeric"
+          className="caixa-tempo"
+          value={rascunho ?? mmss(valor)}
+          title="Minutos e segundos: 130 ou 1:30 = 1 min 30 s"
+          onChange={(e) => digitar(e.target.value)}
+          onBlur={() => setRascunho(null)}
+          onKeyDown={teclas}
+          onFocus={(e) => e.target.select()}
+        />
+      </label>
+      <PassosSegundos n={30} onMais={() => somar(30)} onMenos={() => somar(-30)} podeMais={pode(30)} podeMenos={pode(-30)} />
+      <PassosSegundos n={1} onMais={() => somar(1)} onMenos={() => somar(-1)} podeMais={pode(1)} podeMenos={pode(-1)} />
+    </div>
   );
 }
 
@@ -78,9 +107,18 @@ function LinhaEtapa({ etapa, indice, total, onChange, onRemover, onMover, aninha
   return (
     <li ref={ref} className={`etapa etapa-${etapa.tipo}`}>
       <div className="etapa-cabeca">
-        <span className="etapa-tipo">
-          {etapa.tipo === "remada" ? "Remada" : etapa.tipo === "descanso" ? "Descanso" : "Repetição"}
-        </span>
+        {etapa.tipo === "repeticao" ? (
+          // repetição: "REPETIR [3] vezes" já no cabeçalho
+          <label className="campo-vezes">
+            <span className="etapa-tipo">Repetir</span>
+            <CampoNumero rotuloMais="Aumentar as repetições em 1" rotuloMenos="Diminuir as repetições em 1" onMais={() => mudarVezes(1)} onMenos={() => mudarVezes(-1)} podeMais={etapa.vezes < 99} podeMenos={etapa.vezes > 1}>
+              {(teclas) => <input type="number" inputMode="numeric" min="1" max="99" value={etapa.vezes} onChange={(e) => onChange({ ...etapa, vezes: Math.min(99, Math.max(0, parseInt(e.target.value, 10) || 0)) })} onKeyDown={teclas} onFocus={(e) => e.target.select()} />}
+            </CampoNumero>
+            <span>vezes</span>
+          </label>
+        ) : (
+          <span className="etapa-tipo">{etapa.tipo === "remada" ? "Remada" : "Descanso"}</span>
+        )}
         <div className="etapa-controles">
           <button type="button" className="btn-icone" disabled={indice === 0} onClick={() => onMover(-1)} aria-label="Mover para cima"><Cima /></button>
           <button type="button" className="btn-icone" disabled={indice === total - 1} onClick={() => onMover(1)} aria-label="Mover para baixo"><Baixo /></button>
@@ -88,32 +126,28 @@ function LinhaEtapa({ etapa, indice, total, onChange, onRemover, onMover, aninha
         </div>
       </div>
 
+      {/* tempo | voga numa linha só, com a barra no meio do cartão (descanso: só o tempo, no mesmo lugar) */}
       {etapa.tipo !== "repeticao" && (
         <div className="etapa-campos">
           <CampoTempo rotulo="Tempo" valor={etapa.duracao_s} onChange={(v) => onChange({ ...etapa, duracao_s: v })} />
           {etapa.tipo === "remada" && (
-            <label className="campo-voga">
-              <span>Voga</span>
-              <CampoNumero rotuloMais="Aumentar a voga em 1" rotuloMenos="Diminuir a voga em 1" onMais={() => mudarVoga(1)} onMenos={() => mudarVoga(-1)} podeMais={etapa.voga < VOGA_MAX} podeMenos={etapa.voga > VOGA_MIN}>
-                {(teclas) => <input type="number" inputMode="numeric" min={VOGA_MIN} max={VOGA_MAX} value={etapa.voga} aria-invalid={vogaInvalida} title={`Voga de ${VOGA_MIN} a ${VOGA_MAX}`} onChange={(e) => onChange({ ...etapa, voga: Math.min(99, Math.max(0, parseInt(e.target.value, 10) || 0)) })} onKeyDown={teclas} onFocus={(e) => e.target.select()} />}
-              </CampoNumero>
-              {vogaInvalida && <span className="dica-erro">{VOGA_MIN} a {VOGA_MAX}</span>}
-            </label>
+            <>
+              <span className="etapa-separador" aria-hidden="true" />
+              <div className="campo-voga">
+                <label className="caixa-rotulada">
+                  <span>Voga</span>
+                  <input type="number" inputMode="numeric" min={VOGA_MIN} max={VOGA_MAX} value={etapa.voga} aria-invalid={vogaInvalida} title={`Voga de ${VOGA_MIN} a ${VOGA_MAX}`} onChange={(e) => onChange({ ...etapa, voga: Math.min(99, Math.max(0, parseInt(e.target.value, 10) || 0)) })} onKeyDown={teclasDePasso(() => mudarVoga(1), () => mudarVoga(-1), etapa.voga < VOGA_MAX, etapa.voga > VOGA_MIN)} onFocus={(e) => e.target.select()} />
+                </label>
+                <Passos rotuloMais="Aumentar a voga em 1" rotuloMenos="Diminuir a voga em 1" onMais={() => mudarVoga(1)} onMenos={() => mudarVoga(-1)} podeMais={etapa.voga < VOGA_MAX} podeMenos={etapa.voga > VOGA_MIN} />
+              </div>
+            </>
           )}
+          {vogaInvalida && <span className="dica-erro">Voga de {VOGA_MIN} a {VOGA_MAX}</span>}
         </div>
       )}
 
       {etapa.tipo === "repeticao" && (
-        <>
-          <label className="campo-voga">
-            <span>Repetir</span>
-            <CampoNumero rotuloMais="Aumentar as repetições em 1" rotuloMenos="Diminuir as repetições em 1" onMais={() => mudarVezes(1)} onMenos={() => mudarVezes(-1)} podeMais={etapa.vezes < 99} podeMenos={etapa.vezes > 1}>
-              {(teclas) => <input type="number" inputMode="numeric" min="1" max="99" value={etapa.vezes} onChange={(e) => onChange({ ...etapa, vezes: Math.min(99, Math.max(0, parseInt(e.target.value, 10) || 0)) })} onKeyDown={teclas} onFocus={(e) => e.target.select()} />}
-            </CampoNumero>
-            <span>vezes</span>
-          </label>
-          <ListaEtapas etapas={etapa.etapas} onChange={(etapas) => onChange({ ...etapa, etapas })} aninhada anteriores={anteriores} />
-        </>
+        <ListaEtapas etapas={etapa.etapas} onChange={(etapas) => onChange({ ...etapa, etapas })} aninhada anteriores={anteriores} />
       )}
     </li>
   );
