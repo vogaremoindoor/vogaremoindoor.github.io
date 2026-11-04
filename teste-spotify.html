@@ -87,7 +87,14 @@
     </div>
     <div class="linha" style="margin-top:10px">
       <label>Voz <select id="voz"><option>Faber</option><option>Nassif</option><option>Aranha</option></select></label>
-      <label>Volume das falas <input id="volume" type="range" min="0" max="2" step="0.1" value="1" /> <span id="volumeTxt">100%</span></label>
+    </div>
+    <div class="linha" style="margin-top:10px">
+      <span class="suave">Reforço das falas:</span>
+      <button data-reforco="0">Normal (app hoje)</button>
+      <button data-reforco="4">+4 dB</button>
+      <button data-reforco="8" aria-pressed="true">+8 dB</button>
+      <button data-reforco="12">+12 dB</button>
+      <button data-reforco="16">+16 dB</button>
     </div>
     <div class="linha" style="margin-top:10px">
       <label title="Só Safari 16.4+ (iPhone/Mac). Muda como o som da página se mistura com outros sons.">
@@ -118,7 +125,7 @@
     <h2>4. O que anotar</h2>
     <div class="respostas suave">
       <span>• A música tocou completa (selo verde) ou só 30 s?</span>
-      <span>• As falas ficaram audíveis por cima? Precisou subir o volume delas?</span>
+      <span>• As falas ficaram audíveis por cima? Qual reforço ficou melhor (e algum distorceu)?</span>
       <span>• Ao tocar uma fala, a música parou, abaixou ou continuou igual?</span>
       <span>• “Pausar” do treino pausou a música? E com a tela bloqueada?</span>
     </div>
@@ -211,13 +218,46 @@
   const AC = window.AudioContext || window.webkitAudioContext;
   let ctx = null;
   let ganho = null;
+  let reforco = 8;
   const buffers = new Map();
+  // Reforço: ganho antes de um limitador. As falas foram gravadas com média de ~-19 dB e picos de ~-3 dB; só
+  // aumentar o ganho estouraria os picos. O limitador (compressor rápido, razão 20) segura os picos
+  // e deixa o resto da fala mais alto.
+  // "Normal" = o som de hoje (sem limitador). O compressor do navegador soma um ganho próprio, por isso a saída
+  // desce 2 dB: os picos ficam abaixo de 0 dB em todas as falas (medido nas três vozes).
+  const criarCadeia = (c, dB) => {
+    const entrada = c.createGain();
+    const lim = c.createDynamicsCompressor();
+    lim.threshold.value = -6;
+    lim.knee.value = 3;
+    lim.ratio.value = 20;
+    lim.attack.value = 0.002;
+    lim.release.value = 0.12;
+    const saida = c.createGain();
+    saida.gain.value = Math.pow(10, -2 / 20);
+    // trava final: linear até 0,9 e curva suave até 1 (nada passa do máximo, mesmo no +16 dB)
+    const trava = c.createWaveShaper();
+    const curva = new Float32Array(2049);
+    for (let i = 0; i < curva.length; i++) {
+      const x = i / 1024 - 1; // entrada de -1 a 1 (acima disso o navegador usa as pontas da curva)
+      const a = Math.abs(x);
+      curva[i] = Math.sign(x) * (a <= 0.9 ? a : 0.9 + 0.1 * Math.tanh((a - 0.9) / 0.1));
+    }
+    trava.curve = curva;
+    lim.connect(saida).connect(trava).connect(c.destination);
+    const aplicar = (db) => {
+      entrada.disconnect();
+      entrada.gain.value = Math.pow(10, db / 20);
+      entrada.connect(db > 0 ? lim : c.destination);
+    };
+    aplicar(dB);
+    return { entrada, aplicar };
+  };
+  window.__criarCadeia = criarCadeia; // usado no teste automático (mede picos e média)
   const garantirCtx = () => {
     if (!ctx) {
       ctx = new AC();
-      ganho = ctx.createGain();
-      ganho.gain.value = Number($("#volume").value);
-      ganho.connect(ctx.destination);
+      ganho = criarCadeia(ctx, reforco);
       log("AudioContext criado:", ctx.state);
     }
     if (ctx.state !== "running") ctx.resume();
@@ -243,7 +283,7 @@
       const b = await carregarFala(nome);
       const src = c.createBufferSource();
       src.buffer = b;
-      src.connect(ganho);
+      src.connect(ganho.entrada);
       src.start(quando ? Math.max(c.currentTime, quando) : 0);
     } catch (e) { log("erro na fala", nome, e.message); }
   };
@@ -256,7 +296,7 @@
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(0.6, t + 0.01);
     g.gain.exponentialRampToValueAtTime(0.0001, t + (agudo ? 0.5 : 0.18));
-    o.connect(g).connect(ganho);
+    o.connect(g).connect(ganho.entrada);
     o.start(t);
     o.stop(t + 0.6);
   };
@@ -264,11 +304,13 @@
   document.querySelectorAll("[data-fala]").forEach((b) => (b.onclick = () => fala(b.dataset.fala)));
   $("#bipe").onclick = () => bipe();
   $("#voz").onchange = () => log("voz:", $("#voz").value);
-  $("#volume").oninput = (e) => {
-    const v = Number(e.target.value);
-    $("#volumeTxt").textContent = `${Math.round(v * 100)}%`;
-    if (ganho) ganho.gain.value = v;
-  };
+  document.querySelectorAll("[data-reforco]").forEach((b) => (b.onclick = () => {
+    reforco = Number(b.dataset.reforco);
+    document.querySelectorAll("[data-reforco]").forEach((x) => x.setAttribute("aria-pressed", x === b));
+    ganho?.aplicar(reforco);
+    log(`reforço das falas: ${reforco ? "+" + reforco + " dB" : "normal"}`);
+    fala("voga-20");
+  }));
 
   if (!("audioSession" in navigator)) {
     $("#sessao").disabled = true;
