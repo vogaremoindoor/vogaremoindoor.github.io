@@ -2,11 +2,11 @@
 // (por exemplo https://usuario.github.io/voga/), pois tudo é relativo ao escopo.
 // A versão e a lista de assets abaixo são preenchidas no build (vite.config.js). O cache do app muda a cada versão;
 // o das falas (audio/) é separado e permanece, para não baixar tudo de novo a cada atualização.
-const VERSAO = "mw1h2pua";
+const VERSAO = "mw1h62f5";
 const CACHE = `voga-app-${VERSAO}`;
 const CACHE_FALAS = "voga-falas-v4";
 const ESCOPO = self.registration.scope; // sempre termina com "/"
-const ASSETS = ["assets/index-CIsV19wt.css", "assets/index-lrtdZ6j7.js", "assets/react-C8w-UNLI.js"];
+const ASSETS = ["assets/index-C8vYULgX.js", "assets/index-CIsV19wt.css", "assets/react-C8w-UNLI.js"];
 const BASE = [ESCOPO, `${ESCOPO}manifest.webmanifest`, `${ESCOPO}icons/icon.svg`, ...ASSETS.map((a) => `${ESCOPO}${a}`)];
 const CAMINHO_API = new URL("api/", ESCOPO).pathname;
 // Falas do treino da voz padrão (audio/Faber/voga-12.mp3 ... voga-46.mp3, 5seg.mp3, vai.mp3, respira.mp3,
@@ -85,13 +85,17 @@ self.addEventListener("fetch", (e) => {
     return;
   }
 
-  // Páginas: rede primeiro, cópia local se estiver offline.
+  // Páginas: rede primeiro, cópia local se estiver offline. Só a página do app (raiz ou index.html) vira a cópia
+  // guardada; outras páginas do site (por exemplo teste-spotify.html) não podem tomar o lugar dela.
   if (req.mode === "navigate") {
+    const paginaDoApp = url.pathname === new URL(ESCOPO).pathname || url.pathname === new URL("index.html", ESCOPO).pathname;
     e.respondWith(
       fetch(req)
         .then((r) => {
-          const copia = r.clone();
-          caches.open(CACHE).then((c) => c.put(ESCOPO, copia));
+          if (paginaDoApp && r.ok) {
+            const copia = r.clone();
+            caches.open(CACHE).then((c) => c.put(ESCOPO, copia));
+          }
           return r;
         })
         .catch(() => caches.match(ESCOPO)),

@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex" />
+<title>Teste · Spotify + Voga</title>
+<!--
+  Página de TESTE (não faz parte do app): o player incorporado do Spotify (Embed + iFrame API) tocando uma
+  playlist, com as falas e os bipes do Voga por cima. Serve para ver, em cada aparelho/navegador:
+   1) se a música toca completa (logado no Spotify) ou só trechos de 30 s;
+   2) como as falas se misturam com a música (e o efeito de navigator.audioSession no iPhone);
+   3) se dá para pausar/retomar a música pelo app.
+  Endereço no site: https://vogaremoindoor.github.io/teste-spotify.html
+-->
+<style>
+  :root {
+    --fundo: #0f1620; --cartao: #182230; --texto: #e8eef5; --suave: #9fb0c3; --borda: #2a394b;
+    --cor: #2fb9d3; --ok: #3ccf7a; --aviso: #f1b84b; --erro: #ef6b6b;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--fundo); color: var(--texto); font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 720px; margin: 0 auto; padding: 16px 16px 120px; }
+  h1 { font-size: 1.3rem; margin: 4px 0 2px; }
+  h2 { font-size: 1rem; margin: 0 0 10px; color: var(--cor); }
+  p { margin: 6px 0; }
+  .suave { color: var(--suave); font-size: .9rem; }
+  section { background: var(--cartao); border: 1px solid var(--borda); border-radius: 12px; padding: 14px; margin: 14px 0; }
+  .linha { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  input[type=text] { flex: 1 1 260px; min-width: 0; padding: 10px; border-radius: 8px; border: 1px solid var(--borda); background: #0b1119; color: var(--texto); font-size: .95rem; }
+  button { padding: 10px 14px; border-radius: 8px; border: 1px solid var(--borda); background: #22324a; color: var(--texto); font-size: .95rem; cursor: pointer; }
+  button:active { transform: scale(.97); }
+  button.principal { background: var(--cor); border-color: var(--cor); color: #062029; font-weight: 600; }
+  button[aria-pressed=true] { background: var(--cor); color: #062029; border-color: var(--cor); }
+  label { display: flex; gap: 8px; align-items: center; }
+  select, input[type=range] { font-size: .95rem; }
+  select { padding: 8px; border-radius: 8px; background: #0b1119; color: var(--texto); border: 1px solid var(--borda); }
+  #player { margin-top: 10px; border-radius: 12px; overflow: hidden; min-height: 80px; background: #000; }
+  #player iframe { display: block; border: 0; width: 100%; }
+  .estado { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: .92rem; margin-top: 10px; }
+  .estado b { color: var(--suave); font-weight: 500; }
+  .selo { display: inline-block; padding: 2px 10px; border-radius: 99px; font-weight: 600; font-size: .9rem; }
+  .selo.ok { background: color-mix(in srgb, var(--ok) 25%, transparent); color: var(--ok); }
+  .selo.aviso { background: color-mix(in srgb, var(--aviso) 25%, transparent); color: var(--aviso); }
+  .selo.neutro { background: #22324a; color: var(--suave); }
+  #treino { font-size: 2.6rem; font-variant-numeric: tabular-nums; font-weight: 700; text-align: center; margin: 6px 0; }
+  #treino small { display: block; font-size: 1rem; font-weight: 500; color: var(--suave); }
+  #log { font: 12px/1.4 ui-monospace, Menlo, monospace; background: #0b1119; border-radius: 8px; padding: 8px; height: 160px; overflow: auto; white-space: pre-wrap; color: var(--suave); }
+  .respostas { display: grid; gap: 6px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Teste · Spotify + Voga</h1>
+  <p class="suave">Página de teste: o player do Spotify com as falas do treino por cima. Nada aqui altera o app nem a sua conta.</p>
+
+  <section>
+    <h2>1. Playlist</h2>
+    <div class="linha">
+      <input id="link" type="text" value="https://open.spotify.com/playlist/37i9dQZF1E4qna5ejnW0b9" aria-label="Link da playlist" />
+      <button id="carregar">Carregar</button>
+    </div>
+    <div class="linha" style="margin-top:8px">
+      <span class="suave">Tamanho:</span>
+      <button data-altura="80">Compacto</button>
+      <button data-altura="152" aria-pressed="true">Médio</button>
+      <button data-altura="352">Grande</button>
+    </div>
+    <div id="player"><div id="alvo"></div></div>
+    <div class="estado">
+      <b>Resultado</b><span id="resultado"><span class="selo neutro">dê play na música</span></span>
+      <b>Situação</b><span id="situacao">carregando o player…</span>
+      <b>Faixa</b><span id="faixa">—</span>
+    </div>
+    <p class="suave">Se aparecer “Só trechos de 30 s”, toque em “Entrar”/“Log in” no player (abre o login do Spotify numa janela) e volte para esta página.</p>
+  </section>
+
+  <section>
+    <h2>2. Falas por cima da música</h2>
+    <div class="linha">
+      <button data-fala="voga-20">Voga 20</button>
+      <button data-fala="voga-28">Voga 28</button>
+      <button data-fala="5seg">5 segundos</button>
+      <button data-fala="prepara-vai">Prepara… Vai!</button>
+      <button data-fala="respira">Respira</button>
+      <button id="bipe">Bipe</button>
+    </div>
+    <div class="linha" style="margin-top:10px">
+      <label>Voz <select id="voz"><option>Faber</option><option>Nassif</option><option>Aranha</option></select></label>
+      <label>Volume das falas <input id="volume" type="range" min="0" max="2" step="0.1" value="1" /> <span id="volumeTxt">100%</span></label>
+    </div>
+    <div class="linha" style="margin-top:10px">
+      <label title="Só Safari 16.4+ (iPhone/Mac). Muda como o som da página se mistura com outros sons.">
+        Modo de áudio (iPhone)
+        <select id="sessao">
+          <option value="">padrão</option>
+          <option value="ambient">ambient (mistura)</option>
+          <option value="transient">transient (abaixa os outros)</option>
+          <option value="playback">playback</option>
+        </select>
+      </label>
+      <span id="sessaoTxt" class="suave"></span>
+    </div>
+  </section>
+
+  <section>
+    <h2>3. Mini treino (60 s) com a música</h2>
+    <div id="treino">--:--<small>parado</small></div>
+    <div class="linha">
+      <button id="iniciar" class="principal">Iniciar treino</button>
+      <button id="pausar" disabled>Pausar</button>
+      <label><input id="juntos" type="checkbox" checked /> Música pausa/retoma junto com o treino</label>
+    </div>
+    <p class="suave">Sequência: 10 s de preparação (bipes + “Prepara… Vai!”), 20 s de remada voga 20, 10 s de descanso, 20 s de remada voga 28.</p>
+  </section>
+
+  <section>
+    <h2>4. O que anotar</h2>
+    <div class="respostas suave">
+      <span>• A música tocou completa (selo verde) ou só 30 s?</span>
+      <span>• As falas ficaram audíveis por cima? Precisou subir o volume delas?</span>
+      <span>• Ao tocar uma fala, a música parou, abaixou ou continuou igual?</span>
+      <span>• “Pausar” do treino pausou a música? E com a tela bloqueada?</span>
+    </div>
+    <p class="suave" style="margin-top:10px">Registro técnico (pode me mandar uma captura):</p>
+    <div id="log"></div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const log = (...m) => {
+    const t = new Date().toLocaleTimeString("pt-BR");
+    $("#log").textContent += `${t}  ${m.join(" ")}\n`;
+    $("#log").scrollTop = 1e9;
+  };
+  log("navegador:", navigator.userAgent);
+
+  // ---------- Spotify (Embed iFrame API) ----------
+  let controle = null;
+  let altura = 152;
+  let maiorDuracao = 0;
+  let tocando = false;
+
+  const uriDoLink = (texto) => {
+    const m = String(texto).match(/(playlist|album|track|artist|episode|show)[/:]([A-Za-z0-9]{22})/);
+    return m ? `spotify:${m[1]}:${m[2]}` : null;
+  };
+
+  const ajustarAltura = () => {
+    const f = $("#player iframe");
+    if (f) { f.height = altura; f.style.height = `${altura}px`; }
+  };
+
+  const mostrarResultado = (duracao) => {
+    if (!duracao) return;
+    maiorDuracao = Math.max(maiorDuracao, duracao);
+    const r = $("#resultado");
+    if (maiorDuracao > 31000) r.innerHTML = '<span class="selo ok">Música completa ✓ (logado)</span>';
+    else r.innerHTML = '<span class="selo aviso">Só trechos de 30 s (não logado neste navegador)</span>';
+  };
+
+  window.onSpotifyIframeApiReady = (API) => {
+    log("iFrame API do Spotify carregada");
+    const uri = uriDoLink($("#link").value);
+    API.createController($("#alvo"), { uri, width: "100%", height: altura }, (c) => {
+      controle = c;
+      ajustarAltura();
+      c.addListener("ready", () => { $("#situacao").textContent = "pronto: toque no play do player"; log("player pronto"); });
+      let ultimo = "";
+      c.addListener("playback_update", (e) => {
+        const d = e.data || {};
+        tocando = !d.isPaused;
+        $("#situacao").textContent = d.isBuffering ? "carregando…" : d.isPaused ? "pausado" : "tocando";
+        $("#faixa").textContent = d.duration ? `${fmt(d.position / 1000)} de ${fmt(d.duration / 1000)}` : "—";
+        mostrarResultado(d.duration);
+        const chave = `${d.isPaused}|${d.isBuffering}|${d.duration}`;
+        if (chave !== ultimo) { ultimo = chave; log(`spotify: ${d.isPaused ? "pausado" : "tocando"}${d.isBuffering ? " (carregando)" : ""}, duração ${Math.round((d.duration || 0) / 1000)} s`); }
+      });
+    });
+  };
+  const s = document.createElement("script");
+  s.src = "https://open.spotify.com/embed/iframe-api/v1";
+  s.async = true;
+  // sem a iFrame API: player simples (toca, mas a página não consegue pausar a música nem saber se é trecho de 30 s)
+  const playerSimples = () => {
+    const uri = uriDoLink($("#link").value) || "";
+    const [, tipo, id] = uri.split(":");
+    $("#player").innerHTML = `<iframe src="https://open.spotify.com/embed/${tipo}/${id}" height="${altura}" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>`;
+    $("#situacao").textContent = "player simples (sem controle pela página)";
+  };
+  s.onerror = () => { log("ERRO ao carregar a iFrame API; usando o player simples"); playerSimples(); };
+  document.head.appendChild(s);
+
+  $("#carregar").onclick = () => {
+    const uri = uriDoLink($("#link").value);
+    if (!uri) { log("link não reconhecido"); $("#situacao").textContent = "link não reconhecido"; return; }
+    maiorDuracao = 0;
+    $("#resultado").innerHTML = '<span class="selo neutro">dê play na música</span>';
+    controle?.loadUri(uri);
+    log("carregar", uri);
+  };
+  document.querySelectorAll("[data-altura]").forEach((b) => (b.onclick = () => {
+    altura = Number(b.dataset.altura);
+    document.querySelectorAll("[data-altura]").forEach((x) => x.setAttribute("aria-pressed", x === b));
+    ajustarAltura();
+  }));
+
+  // ---------- Áudio do Voga (Web Audio, como no app) ----------
+  const AC = window.AudioContext || window.webkitAudioContext;
+  let ctx = null;
+  let ganho = null;
+  const buffers = new Map();
+  const garantirCtx = () => {
+    if (!ctx) {
+      ctx = new AC();
+      ganho = ctx.createGain();
+      ganho.gain.value = Number($("#volume").value);
+      ganho.connect(ctx.destination);
+      log("AudioContext criado:", ctx.state);
+    }
+    if (ctx.state !== "running") ctx.resume();
+    return ctx;
+  };
+  const decodificar = (c, bytes) => new Promise((ok, falha) => {
+    const r = c.decodeAudioData(bytes, ok, falha);
+    if (r && r.then) r.then(ok, falha);
+  });
+  const carregarFala = async (nome) => {
+    const voz = $("#voz").value;
+    const chave = `${voz}/${nome}`;
+    if (!buffers.has(chave)) {
+      const r = await fetch(`audio/${voz}/${nome}.mp3`);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      buffers.set(chave, await decodificar(garantirCtx(), await r.arrayBuffer()));
+    }
+    return buffers.get(chave);
+  };
+  const fala = async (nome, quando = 0) => {
+    const c = garantirCtx();
+    try {
+      const b = await carregarFala(nome);
+      const src = c.createBufferSource();
+      src.buffer = b;
+      src.connect(ganho);
+      src.start(quando ? Math.max(c.currentTime, quando) : 0);
+    } catch (e) { log("erro na fala", nome, e.message); }
+  };
+  const bipe = (agudo = false, quando = 0) => {
+    const c = garantirCtx();
+    const t = quando || c.currentTime;
+    const o = c.createOscillator();
+    const g = c.createGain();
+    o.frequency.value = agudo ? 1320 : 880;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.6, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + (agudo ? 0.5 : 0.18));
+    o.connect(g).connect(ganho);
+    o.start(t);
+    o.stop(t + 0.6);
+  };
+
+  document.querySelectorAll("[data-fala]").forEach((b) => (b.onclick = () => fala(b.dataset.fala)));
+  $("#bipe").onclick = () => bipe();
+  $("#voz").onchange = () => log("voz:", $("#voz").value);
+  $("#volume").oninput = (e) => {
+    const v = Number(e.target.value);
+    $("#volumeTxt").textContent = `${Math.round(v * 100)}%`;
+    if (ganho) ganho.gain.value = v;
+  };
+
+  if (!("audioSession" in navigator)) {
+    $("#sessao").disabled = true;
+    $("#sessaoTxt").textContent = "não disponível neste navegador";
+  }
+  $("#sessao").onchange = (e) => {
+    try {
+      navigator.audioSession.type = e.target.value || "auto";
+      $("#sessaoTxt").textContent = `agora: ${navigator.audioSession.type}`;
+      log("audioSession.type =", navigator.audioSession.type);
+    } catch (err) { log("audioSession:", err.message); }
+  };
+
+  // ---------- Mini treino ----------
+  const ETAPAS = [
+    { nome: "Prepara", dur: 10, voga: 0 },
+    { nome: "Voga 20", dur: 20, voga: 20 },
+    { nome: "DESCANSO", dur: 10, voga: 0 },
+    { nome: "Voga 28", dur: 20, voga: 28 },
+  ];
+  const TOTAL = ETAPAS.reduce((s, e) => s + e.dur, 0);
+  // eventos de som em segundos desde o início (a falas "Voga N" vêm um pouco antes dos bipes, como no app)
+  const SONS = [
+    { t: 2, f: () => fala("voga-20") },
+    { t: 5, f: () => fala("5seg") },
+    { t: 7, f: (q) => bipe(false, q) }, { t: 8, f: (q) => bipe(false, q) },
+    { t: 9, f: () => fala("prepara-vai") },
+    { t: 30, f: () => fala("respira") },
+    { t: 32, f: () => fala("voga-28") },
+    { t: 35, f: () => fala("5seg") },
+    { t: 37, f: (q) => bipe(false, q) }, { t: 38, f: (q) => bipe(false, q) },
+    { t: 39, f: () => fala("prepara-vai") },
+    { t: 60, f: (q) => bipe(true, q) },
+  ];
+  let decorrido = 0, inicio = 0, timer = null, proximo = 0, rodando = false;
+  const fmt = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+
+  const desenhar = () => {
+    let t = decorrido, i = 0;
+    while (i < ETAPAS.length - 1 && t >= ETAPAS[i].dur) { t -= ETAPAS[i].dur; i++; }
+    const e = ETAPAS[i];
+    const fim = decorrido >= TOTAL;
+    $("#treino").innerHTML = fim ? `00:00<small>fim do treino</small>` : `${fmt(Math.ceil(e.dur - t))}<small>${e.nome}${rodando ? "" : " · pausado"}</small>`;
+  };
+  const passo = () => {
+    decorrido = (performance.now() - inicio) / 1000;
+    while (proximo < SONS.length && SONS[proximo].t <= decorrido + 0.05) { SONS[proximo].f(0); proximo++; }
+    desenhar();
+    if (decorrido >= TOTAL) parar();
+  };
+  const rodar = () => {
+    rodando = true;
+    inicio = performance.now() - decorrido * 1000;
+    timer = setInterval(passo, 100);
+    $("#pausar").textContent = "Pausar";
+    if ($("#juntos").checked && controle && !tocando) { controle.resume(); log("música: retomar"); }
+  };
+  const pausar = () => {
+    rodando = false;
+    clearInterval(timer);
+    $("#pausar").textContent = "Continuar";
+    desenhar();
+    if ($("#juntos").checked && controle && tocando) { controle.pause(); log("música: pausar"); }
+  };
+  const parar = () => {
+    rodando = false;
+    clearInterval(timer);
+    $("#iniciar").textContent = "Iniciar treino";
+    $("#pausar").disabled = true;
+    desenhar();
+  };
+  $("#iniciar").onclick = () => {
+    garantirCtx();
+    clearInterval(timer);
+    decorrido = 0; proximo = 0;
+    $("#iniciar").textContent = "Recomeçar";
+    $("#pausar").disabled = false;
+    log("treino iniciado");
+    rodar();
+  };
+  $("#pausar").onclick = () => (rodando ? pausar() : rodar());
+})();
+</script>
+</body>
+</html>
